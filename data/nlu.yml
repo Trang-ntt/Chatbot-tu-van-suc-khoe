@@ -1,0 +1,122 @@
+version: "3.1"
+
+nlu:
+- intent: greet
+  examples: |
+    - hey
+    - hello
+    - hi
+    - hello there
+    - good morning
+    - good evening
+    - moin
+    - hey there
+    - let's go
+    - hey dude
+    - goodmorning
+    - goodevening
+    - good afternoon
+
+- intent: goodbye
+  examples: |
+    - cu
+    - good by
+    - cee you later
+    - good night
+    - bye
+    - goodbye
+    - have a nice day
+    - see you around
+    - bye bye
+    - see you later
+
+- intent: affirm
+  examples: |
+    - yes
+    - y
+    - indeed
+    - of course
+    - that sounds good
+    - correct
+
+- intent: deny
+  examples: |
+    - no
+    - n
+    - never
+    - I don't think so
+    - don't like that
+    - no way
+    - not really
+
+- intent: mood_great
+  examples: |
+    - perfect
+    - great
+    - amazing
+    - feeling like a king
+    - wonderful
+    - I am feeling very good
+    - I am great
+    - I am amazing
+    - I am going to save the world
+    - super stoked
+    - extremely good
+    - so so perfect
+    - so good
+    - so perfect
+
+- intent: mood_unhappy
+  examples: |
+    - my day was horrible
+    - I am sad
+    - I don't feel very well
+    - I am disappointed
+    - super sad
+    - I'm so sad
+    - sad
+    - very sad
+    - unhappy
+    - not good
+    - not very good
+    - extremly sad
+    - so saad
+    - so sad
+
+- intent: bot_challenge
+  examples: |
+    - are you a bot?
+    - are you a human?
+    - am I talking to a bot?
+    - am I talking to a human?
+
+- intent: symptom_check
+  examples: |
+    - Tôi bị sốt, ho, đau họng, đau đầu, mệt mỏi
+    - Tôi khó thở và đau ngực
+    - Tôi bị đau bụng, buồn nôn, ợ chua
+    - Tôi thấy chóng mặt và da xanh xao
+    - Tôi khát nước nhiều và tiểu nhiều
+    - Tôi bị đau khớp, sưng khớp
+    - Tôi ho khan, khò khè, nặng ngực
+    - Tôi bị đỏ mắt và ngứa
+    - Tôi mất ngủ kéo dài, đau đầu
+    - Tôi đau tai và sốt
+    - Tôi bị phát ban, ngứa, đỏ da
+    - Tôi bị đau lưng, dễ gãy xương
+    - Tôi bị vàng da và mệt mỏi
+    - Tôi bị đau lưng, tiểu buốt, tiểu ra máu
+    - Tôi bị nghẹt mũi, đau đầu, đau mặt
+    - Tôi bị yếu liệt tay chân, nói khó
+    - Tôi buồn bã, mất ngủ, chán ăn
+    - Tôi bồn chồn, tim đập nhanh
+    - Tôi bị run tay, sụt cân
+    - Tôi bị đau bụng, tiêu chảy
+    - Tôi bị táo bón, đầy bụng
+    - Tôi bị dị ứng, đỏ mắt, sổ mũi
+    - Tôi bị đau cơ, đau khớp, đau lưng
+    - Tôi bị đau mắt, đỏ mắt, ngứa
+    - Tôi bị đau họng, ho, khàn tiếng
+    - Tôi bị đau đầu dữ dội, nôn ói
+    - Tôi bị đau ngực, khó thở
+

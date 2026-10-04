@@ -1,0 +1,200 @@
+from typing import Any, Text, Dict, List
+from rasa_sdk import Action, Tracker
+from rasa_sdk.executor import CollectingDispatcher
+
+diseases = [
+    {
+        "name": "Cảm cúm",
+        "symptoms": ["sốt", "ho", "đau họng", "đau đầu", "mệt mỏi", "ớn lạnh", "đau cơ"],
+        "advice": "Nghỉ ngơi nhiều, uống nước ấm, giữ ấm cơ thể. Nếu sốt >38.5°C hoặc kéo dài >7 ngày, cần đi khám."
+    },
+    {
+        "name": "Viêm phổi",
+        "symptoms": ["sốt", "ho", "khó thở", "đau ngực", "mệt mỏi"],
+        "advice": "Nghỉ ngơi, uống nhiều nước, giữ ấm. Nếu khó thở hoặc sốt cao kéo dài, đến bệnh viện."
+    },
+    {
+        "name": "Hen suyễn",
+        "symptoms": ["khó thở", "ho", "khò khè", "nặng ngực", "mệt mỏi"],
+        "advice": "Tránh bụi, khói thuốc, dị nguyên. Nếu khó thở nặng, dùng thuốc theo chỉ định bác sĩ."
+    },
+    {
+        "name": "Viêm dạ dày",
+        "symptoms": ["đau bụng", "buồn nôn", "ợ chua", "chán ăn", "đầy bụng"],
+        "advice": "Ăn uống điều độ, tránh cay nóng, rượu bia. Nếu đau dữ dội hoặc nôn ra máu, đi khám."
+    },
+    {
+        "name": "Loét dạ dày",
+        "symptoms": ["đau bụng", "buồn nôn", "ợ nóng", "chán ăn", "sụt cân"],
+        "advice": "Ăn uống nhẹ nhàng, tránh stress. Nếu xuất huyết tiêu hóa, nhập viện khẩn cấp."
+    },
+    {
+        "name": "Viêm gan",
+        "symptoms": ["mệt mỏi", "vàng da", "chán ăn", "buồn nôn", "đau bụng"],
+        "advice": "Tránh rượu bia, ăn uống lành mạnh. Nếu vàng da hoặc mệt mỏi kéo dài, đi khám chuyên khoa gan."
+    },
+    {
+        "name": "Sỏi thận",
+        "symptoms": ["đau lưng", "đau bụng", "tiểu buốt", "tiểu ra máu", "buồn nôn"],
+        "advice": "Uống nhiều nước, hạn chế muối. Nếu đau dữ dội hoặc tiểu ra máu nhiều, đi khám ngay."
+    },
+    {
+        "name": "Viêm bàng quang",
+        "symptoms": ["tiểu buốt", "tiểu nhiều lần", "đau bụng dưới", "sốt nhẹ"],
+        "advice": "Uống nhiều nước, giữ vệ sinh. Nếu tiểu ra máu hoặc sốt cao, đi khám."
+    },
+    {
+        "name": "Viêm xoang",
+        "symptoms": ["nghẹt mũi", "sổ mũi", "đau đầu", "đau mặt", "mệt mỏi"],
+        "advice": "Rửa mũi bằng nước muối, giữ ấm. Nếu đau đầu dữ dội hoặc sốt cao, đi khám."
+    },
+    {
+        "name": "Viêm khớp",
+        "symptoms": ["đau khớp", "sưng khớp", "cứng khớp", "mệt mỏi"],
+        "advice": "Vận động nhẹ, tránh mang nặng. Nếu khớp sưng đỏ hoặc đau kéo dài, đi khám."
+    },
+    {
+        "name": "Loãng xương",
+        "symptoms": ["đau lưng", "đau khớp", "dễ gãy xương", "mệt mỏi"],
+        "advice": "Bổ sung canxi, vitamin D, tập luyện nhẹ. Nếu gãy xương, điều trị ngay."
+    },
+    {
+        "name": "Thiếu máu",
+        "symptoms": ["mệt mỏi", "chóng mặt", "da xanh xao", "khó thở", "đau đầu"],
+        "advice": "Ăn thực phẩm giàu sắt, vitamin B12. Nếu nặng, xét nghiệm máu."
+    },
+    {
+        "name": "Đái tháo đường",
+        "symptoms": ["khát nước nhiều", "tiểu nhiều", "sụt cân", "mệt mỏi", "mờ mắt"],
+        "advice": "Kiểm soát ăn uống, tập luyện. Nếu đường huyết cao hoặc biến chứng, đi khám."
+    },
+    {
+        "name": "Tăng huyết áp",
+        "symptoms": ["đau đầu", "chóng mặt", "mệt mỏi", "khó thở", "tim đập nhanh"],
+        "advice": "Ăn nhạt, tập luyện thường xuyên. Nếu huyết áp quá cao hoặc đau ngực, cấp cứu."
+    },
+    {
+        "name": "Đột quỵ",
+        "symptoms": ["yếu liệt tay chân", "nói khó", "méo miệng", "đau đầu dữ dội"],
+        "advice": "Đây là cấp cứu, gọi ngay để điều trị kịp thời."
+    },
+    {
+        "name": "Trầm cảm",
+        "symptoms": ["buồn bã", "mất ngủ", "mệt mỏi", "chán ăn", "mất hứng thú"],
+        "advice": "Chia sẻ với người thân, duy trì thói quen lành mạnh. Nếu có ý nghĩ tự tử, cần hỗ trợ y tế."
+    },
+    {
+        "name": "Lo âu",
+        "symptoms": ["bồn chồn", "khó ngủ", "tim đập nhanh", "mệt mỏi", "đau đầu"],
+        "advice": "Tập thở sâu, thư giãn, hạn chế caffeine. Nếu kéo dài, đi khám tâm lý."
+    },
+    {
+        "name": "Viêm da",
+        "symptoms": ["ngứa", "phát ban", "đỏ da", "khô da"],
+        "advice": "Giữ vệ sinh da, tránh gãi mạnh. Nếu lan rộng hoặc nổi mụn nước, đi khám da liễu."
+    },
+    {
+        "name": "Zona thần kinh",
+        "symptoms": ["phát ban", "mụn nước", "đau rát", "ngứa", "mệt mỏi"],
+        "advice": "Giữ vệ sinh vùng da, tránh gãi. Nếu đau nhiều hoặc lan rộng, đi khám."
+    },
+    {
+        "name": "Suy giáp",
+        "symptoms": ["mệt mỏi", "tăng cân", "da khô", "rụng tóc", "lạnh tay chân"],
+        "advice": "Đi khám nội tiết để kiểm tra tuyến giáp. Nếu kéo dài, điều trị theo chỉ định."
+    },
+    {
+        "name": "Cường giáp",
+        "symptoms": ["sụt cân", "tim đập nhanh", "run tay", "mệt mỏi", "khó ngủ"],
+        "advice": "Hạn chế chất kích thích, đi khám nội tiết. Nếu tim đập nhanh hoặc khó thở, cấp cứu."
+    },
+    {
+        "name": "Cảm lạnh",
+        "symptoms": ["ho", "đau họng", "sổ mũi", "nghẹt mũi", "mệt mỏi", "đau đầu"],
+        "advice": "Nghỉ ngơi, uống nước ấm, giữ ấm. Nếu kéo dài >7 ngày, đi khám."
+    },
+    {
+        "name": "Viêm họng",
+        "symptoms": ["đau họng", "sốt", "ho", "khàn tiếng", "đau đầu", "mệt mỏi"],
+        "advice": "Súc miệng nước muối, uống nhiều nước, hạn chế nói to. Nếu đau dữ dội hoặc sốt cao, đi khám."
+    },
+    {
+        "name": "Rối loạn tiêu hóa",
+        "symptoms": ["đau bụng", "buồn nôn", "nôn", "tiêu chảy", "đầy bụng", "chán ăn"],
+        "advice": "Ăn uống nhẹ, tránh dầu mỡ, uống nhiều nước. Nếu tiêu chảy >3 ngày hoặc mất nước, đi khám."
+    },
+    {
+        "name": "Táo bón",
+        "symptoms": ["táo bón", "đầy bụng", "đau bụng", "chán ăn"],
+        "advice": "Uống nhiều nước, ăn nhiều chất xơ, vận động nhẹ. Nếu kéo dài >1 tuần, đi khám."
+    },
+    {
+        "name": "Dị ứng",
+        "symptoms": ["ngứa", "phát ban", "đỏ mắt", "sổ mũi", "nghẹt mũi"],
+        "advice": "Tránh tiếp xúc dị nguyên, giữ vệ sinh. Nếu khó thở hoặc nổi mẩn toàn thân, đi khám ngay."
+    },
+    {
+        "name": "Đau đầu",
+        "symptoms": ["đau đầu", "chóng mặt", "mệt mỏi", "khó ngủ", "buồn nôn"],
+        "advice": "Nghỉ ngơi nơi yên tĩnh, uống đủ nước. Nếu đau dữ dội kèm nôn ói hoặc rối loạn thị giác, đi khám."
+    },
+    {
+        "name": "Đau cơ xương khớp",
+        "symptoms": ["đau cơ", "đau khớp", "đau lưng", "đau cổ", "mệt mỏi"],
+        "advice": "Nghỉ ngơi, tránh vận động quá sức. Nếu đau >2 tuần hoặc sưng khớp, đi khám."
+    },
+    {
+        "name": "Viêm kết mạc",
+        "symptoms": ["đỏ mắt", "đau mắt", "ngứa", "mệt mỏi"],
+        "advice": "Giữ vệ sinh mắt, tránh dụi. Nếu đỏ mắt >3 ngày hoặc có mủ, đi khám."
+    },
+    {
+        "name": "Viêm tai",
+        "symptoms": ["đau tai", "sốt", "đau đầu", "mệt mỏi"],
+        "advice": "Theo dõi tình trạng. Nếu đau nhiều, sốt cao hoặc chảy dịch tai, cần đi khám ngay."
+    },
+    {
+        "name": "Mất ngủ",
+        "symptoms": ["khó ngủ", "mệt mỏi", "đau đầu", "chóng mặt"],
+        "advice": "Duy trì thói quen ngủ đúng giờ, hạn chế dùng thiết bị điện tử trước khi ngủ. Nếu mất ngủ kéo dài >2 tuần, cần đi khám."
+    },
+    {
+        "name": "Khó chịu đường hô hấp",
+        "symptoms": ["khó thở", "ho", "đau ngực", "mệt mỏi"],
+        "advice": "Nếu khó thở hoặc đau ngực xuất hiện đột ngột hoặc nghiêm trọng, cần tìm kiếm sự chăm sóc y tế ngay."
+    }
+]
+
+class ActionCheckSymptoms(Action):
+    def name(self) -> str:
+        return "action_check_symptoms"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        # Lấy câu người dùng nhập
+        user_message = tracker.latest_message.get('text').lower()
+
+        best_match = None
+        best_score = 0
+
+        # So khớp triệu chứng
+        for disease in diseases:
+            count = sum(1 for symptom in disease["symptoms"] if symptom in user_message)
+            score = count / len(disease["symptoms"]) * 100
+            if score > best_score:
+                best_score = score
+                best_match = disease
+
+        # Trả lời
+        if best_match:
+            dispatcher.utter_message(
+                text=f"Có thể bạn đang mắc {best_match['name']} "
+                     f"(phù hợp khoảng {best_score:.0f}%).\n"
+                     f"Lời khuyên: {best_match['advice']}"
+            )
+        else:
+            dispatcher.utter_message(text="Tôi chưa nhận diện được bệnh từ triệu chứng bạn mô tả. Bạn nên đi khám để chắc chắn.")
+
+        return []
