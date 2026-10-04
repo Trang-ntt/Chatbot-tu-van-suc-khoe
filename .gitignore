@@ -1,0 +1,7 @@
+.venv/
+.rasa/
+.keras/
+.idea/
+__pycache__/
+*.pyc
+models/
