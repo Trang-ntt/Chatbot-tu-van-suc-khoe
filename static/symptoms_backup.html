@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Phân tích triệu chứng</title>
+    <style>
+      body {
+        font-family: Segoe UI;
+        background: #f5f7fb;
+        margin: 0;
+      }
+      .wrap {
+        max-width: 1000px;
+        margin: auto;
+        padding: 25px;
+      }
+      .card {
+        background: #fff;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 18px;
+      }
+      .symptoms {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 8px;
+      }
+      .warning {
+        padding: 12px;
+        background: #fff7ed;
+        border-left: 4px solid #f59e0b;
+        margin-top: 12px;
+      }
+      button {
+        padding: 10px 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <a href="/home">← Trang chủ</a>
+      <h1>🩺 Phân tích triệu chứng sơ bộ</h1>
+      <div class="card">
+        <div id="symptoms" class="symptoms"></div>
+        <label
+          >Mức độ
+          <select id="severity">
+            <option value="1">Nhẹ</option>
+            <option value="2">Vừa</option>
+            <option value="3">Nặng</option>
+          </select></label
+        ><label>Số ngày <input id="duration" type="number" min="0" /></label
+        ><button onclick="analyzeSymptoms()">Phân tích</button>
+      </div>
+      <div id="result" class="card" style="display: none"></div>
+      <div class="warning">
+        Kết quả chỉ mang tính chất tham khảo, không thay thế chẩn đoán của bác
+        sĩ.
+      </div>
+    </div>
+    <script>
+      const token = localStorage.getItem("healthbot_token");
+      if (!token) location = "/";
+      async function init() {
+        const r = await fetch("/api/symptoms/list", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        const d = await r.json();
+        document.getElementById("symptoms").innerHTML = d.symptoms
+          .map(
+            (s) => `<label><input type="checkbox" value="${s}"> ${s}</label>`,
+          )
+          .join("");
+      }
+      async function analyzeSymptoms() {
+        const selected = [
+          ...document.querySelectorAll(".symptoms input:checked"),
+        ].map((x) => x.value);
+        const severity = +document.getElementById("severity").value;
+        const days = +document.getElementById("duration").value || null;
+        const res = document.getElementById("result");
+
+        if (!selected.length) {
+          res.style.display = "block";
+          res.innerHTML = "<h3>⚠️ Vui lòng chọn ít nhất một triệu chứng.</h3>";
+          return;
+        }
+
+        const r = await fetch("/api/symptoms/analyze", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          },
+          body: JSON.stringify({
+            symptoms: selected,
+            severity,
+            days_since: days,
+          }),
+        });
+
+        const d = await r.json();
+        if (!r.ok) {
+          res.style.display = "block";
+          res.textContent = d.detail || "Lỗi";
+          return;
+        }
+
+        const x = d.results[0];
+        res.style.display = "block";
+        res.innerHTML = `
+    <h2>📋 Kết quả phân tích sơ bộ</h2>
+    <p>Triệu chứng: <b>${selected.join(", ")}</b></p>
+    <p><b>${x.name}</b> – mức độ phù hợp ${x.percent}%</p>
+    <p>💡 ${x.advice}</p>
+    ${ severity === 3 || days >= 8
+        ? '<div class="warning">⚠️ Triệu chứng có mức độ nặng hoặc kéo dài. Bạn nên cân nhắc đi khám.</div>'
+        : ""}
+  `;
+      }
+      init();
+    </script>
+  </body>
+</html>

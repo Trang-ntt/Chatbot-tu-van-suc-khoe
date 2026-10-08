@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Thêm lịch uống thuốc</title>
+
+    <style>
+      body {
+        font-family: Arial;
+        background: #f5f7fb;
+        padding: 40px;
+      }
+
+      .box {
+        max-width: 600px;
+        margin: auto;
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+      }
+
+      label {
+        display: block;
+        margin-top: 18px;
+        font-weight: bold;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 12px;
+        margin-top: 7px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-sizing: border-box;
+        font-size: 16px;
+      }
+
+      button {
+        width: 100%;
+        margin-top: 25px;
+        padding: 14px;
+        border: none;
+        border-radius: 8px;
+        background: #2196f3;
+        color: white;
+        font-size: 17px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #1976d2;
+      }
+
+      .back {
+        display: block;
+        text-align: center;
+        margin-top: 20px;
+      }
+
+      #msg {
+        text-align: center;
+        font-weight: bold;
+        margin-top: 15px;
+      }
+
+      .error {
+        color: red;
+      }
+
+      .success {
+        color: green;
+      }
+
+      /* ==============================
+           KHU VỰC GIỜ UỐNG
+           ============================== */
+
+      .time-group {
+        margin-top: 7px;
+      }
+
+      .time-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .time-row input {
+        margin-top: 0;
+        flex: 1;
+      }
+
+      .time-label {
+        min-width: 90px;
+        font-weight: bold;
+      }
+
+      .remove-time {
+        width: auto;
+        margin: 0;
+        padding: 10px 14px;
+        background: #e53935;
+        font-size: 14px;
+      }
+
+      .remove-time:hover {
+        background: #c62828;
+      }
+
+      .add-time {
+        width: 100%;
+        margin-top: 12px;
+        padding: 10px;
+        background: #43a047;
+        font-size: 15px;
+      }
+
+      .add-time:hover {
+        background: #2e7d32;
+      }
+
+      .hint {
+        margin-top: 8px;
+        color: #666;
+        font-size: 14px;
+      }
+
+      @media (max-width: 600px) {
+        body {
+          padding: 15px;
+        }
+
+        .box {
+          padding: 20px;
+        }
+
+        .time-row {
+          flex-wrap: wrap;
+        }
+
+        .time-label {
+          width: 100%;
+        }
+
+        .remove-time {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="box">
+      <h1>💊 Thêm lịch uống thuốc</h1>
+
+      <form id="medicineForm">
+        <!-- TÊN THUỐC -->
+        <label>Tên thuốc</label>
+
+        <input
+          type="text"
+          id="name"
+          placeholder="Ví dụ: Paracetamol"
+          required
+        />
+
+        <!-- NGÀY BẮT ĐẦU -->
+        <label>Ngày bắt đầu</label>
+
+        <input type="date" id="start_date" required />
+
+        <!-- NGÀY KẾT THÚC -->
+        <label>Ngày kết thúc</label>
+
+        <input type="date" id="end_date" required />
+
+        <!-- TẦN SUẤT -->
+        <label>Tần suất</label>
+
+        <select id="frequency">
+          <option value="1">Mỗi ngày - 1 lần/ngày</option>
+
+          <option value="2">2 lần/ngày</option>
+
+          <option value="3">3 lần/ngày</option>
+
+          <option value="custom">Theo lịch - tự chọn số lần</option>
+        </select>
+
+        <!-- SỐ LẦN TỰ CHỌN -->
+        <div id="customFrequencyBox" style="display: none">
+          <label>Số lần uống trong ngày</label>
+
+          <input
+            type="number"
+            id="customFrequency"
+            min="1"
+            max="12"
+            value="1"
+          />
+        </div>
+
+        <!-- GIỜ UỐNG -->
+        <label>Giờ uống thuốc</label>
+
+        <div id="timeContainer" class="time-group">
+          <div class="time-row">
+            <span class="time-label"> Lần 1: </span>
+
+            <input type="time" class="medicine-time" required />
+          </div>
+        </div>
+
+        <div class="hint">💡 Mỗi lần uống thuốc cần chọn một giờ riêng.</div>
+
+        <!-- NÚT THÊM GIỜ -->
+        <button
+          type="button"
+          id="addTimeButton"
+          class="add-time"
+          style="display: none"
+        >
+          ➕ Thêm giờ uống
+        </button>
+
+        <!-- NÚT LƯU -->
+        <button type="submit">💾 Lưu lịch uống thuốc</button>
+      </form>
+
+      <p id="msg"></p>
+
+      <a class="back" href="/medications"> ← Quay lại trang nhắc thuốc </a>
+    </div>
+
+    <script>
+      /* =========================================================
+   TOKEN
+   ========================================================= */
+
+      function getToken() {
+        return localStorage.getItem("healthbot_token") || "";
+      }
+
+      /* =========================================================
+   ELEMENT
+   ========================================================= */
+
+      const frequency = document.getElementById("frequency");
+
+      const customFrequencyBox = document.getElementById("customFrequencyBox");
+
+      const customFrequency = document.getElementById("customFrequency");
+
+      const timeContainer = document.getElementById("timeContainer");
+
+      const addTimeButton = document.getElementById("addTimeButton");
+
+      const form = document.getElementById("medicineForm");
+
+      const msg = document.getElementById("msg");
+
+      /* =========================================================
+   LẤY SỐ LẦN UỐNG
+   ========================================================= */
+
+      function getNumberOfTimes() {
+        if (frequency.value === "custom") {
+          let value = parseInt(customFrequency.value);
+
+          if (isNaN(value)) {
+            value = 1;
+          }
+
+          if (value < 1) {
+            value = 1;
+          }
+
+          if (value > 12) {
+            value = 12;
+          }
+
+          customFrequency.value = value;
+
+          return value;
+        }
+
+        return parseInt(frequency.value);
+      }
+
+      /* =========================================================
+   TẠO Ô GIỜ
+   ========================================================= */
+
+      function createTimeRow(index, value = "") {
+        const row = document.createElement("div");
+
+        row.className = "time-row";
+
+        const label = document.createElement("span");
+
+        label.className = "time-label";
+
+        label.textContent = "Lần " + index + ":";
+
+        const input = document.createElement("input");
+
+        input.type = "time";
+
+        input.className = "medicine-time";
+
+        input.required = true;
+
+        input.value = value;
+
+        row.appendChild(label);
+
+        row.appendChild(input);
+
+        /*
+       Nếu là chế độ "Theo lịch"
+       và có nhiều giờ thì cho phép xóa.
+    */
+
+        if (frequency.value === "custom" && index > 1) {
+          const removeButton = document.createElement("button");
+
+          removeButton.type = "button";
+
+          removeButton.className = "remove-time";
+
+          removeButton.textContent = "Xóa";
+
+          removeButton.onclick = function () {
+            row.remove();
+
+            updateTimeLabels();
+          };
+
+          row.appendChild(removeButton);
+        }
+
+        return row;
+      }
+
+      /* =========================================================
+   CẬP NHẬT NHÃN LẦN 1, LẦN 2...
+   ========================================================= */
+
+      function updateTimeLabels() {
+        const rows = document.querySelectorAll(".time-row");
+
+        rows.forEach(function (row, index) {
+          const label = row.querySelector(".time-label");
+
+          if (label) {
+            label.textContent = "Lần " + (index + 1) + ":";
+          }
+        });
+      }
+
+      /* =========================================================
+   HIỂN THỊ CÁC Ô GIỜ
+   ========================================================= */
+
+      function updateTimeInputs() {
+        const numberOfTimes = getNumberOfTimes();
+
+        /*
+       Lưu các giờ hiện tại
+       để khi đổi tần suất không
+       bị mất dữ liệu.
+    */
+
+        const oldInputs = document.querySelectorAll(".medicine-time");
+
+        const oldValues = Array.from(oldInputs).map((input) => input.value);
+
+        /*
+       Xóa các ô cũ
+    */
+
+        timeContainer.innerHTML = "";
+
+        /*
+       Tạo lại đúng số ô
+    */
+
+        for (let i = 0; i < numberOfTimes; i++) {
+          const oldValue = oldValues[i] || "";
+
+          const row = createTimeRow(i + 1, oldValue);
+
+          timeContainer.appendChild(row);
+        }
+
+        /*
+       Nút "Thêm giờ" chỉ xuất hiện
+       khi chọn Theo lịch.
+    */
+
+        if (frequency.value === "custom") {
+          addTimeButton.style.display = "block";
+        } else {
+          addTimeButton.style.display = "none";
+        }
+      }
+
+      /* =========================================================
+   ĐỔI TẦN SUẤT
+   ========================================================= */
+
+      frequency.addEventListener("change", function () {
+        if (frequency.value === "custom") {
+          customFrequencyBox.style.display = "block";
+        } else {
+          customFrequencyBox.style.display = "none";
+        }
+
+        updateTimeInputs();
+      });
+
+      /* =========================================================
+   ĐỔI SỐ LẦN TỰ CHỌN
+   ========================================================= */
+
+      customFrequency.addEventListener("change", function () {
+        let value = parseInt(customFrequency.value);
+
+        if (isNaN(value)) {
+          value = 1;
+        }
+
+        if (value < 1) {
+          value = 1;
+        }
+
+        if (value > 12) {
+          value = 12;
+        }
+
+        customFrequency.value = value;
+
+        updateTimeInputs();
+      });
+
+      /* =========================================================
+   THÊM GIỜ
+   ========================================================= */
+
+      addTimeButton.addEventListener("click", function () {
+        let rows = document.querySelectorAll(".time-row");
+
+        const currentCount = rows.length;
+
+        if (currentCount >= 12) {
+          alert("Tối đa 12 lần uống trong ngày.");
+
+          return;
+        }
+
+        customFrequency.value = currentCount + 1;
+
+        const row = createTimeRow(currentCount + 1);
+
+        timeContainer.appendChild(row);
+      });
+
+      /* =========================================================
+   SUBMIT FORM
+   ========================================================= */
+
+      form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        msg.className = "";
+
+        msg.textContent = "Đang lưu...";
+
+        /* ---------------------------------------------
+           LẤY DỮ LIỆU
+           --------------------------------------------- */
+
+        const drugName = document.getElementById("name").value.trim();
+
+        const startDate = document.getElementById("start_date").value;
+
+        const endDate = document.getElementById("end_date").value;
+
+        const numberOfTimes = getNumberOfTimes();
+
+        /* ---------------------------------------------
+           KIỂM TRA NGÀY
+           --------------------------------------------- */
+
+        if (endDate && startDate && endDate < startDate) {
+          msg.textContent = "❌ Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.";
+
+          msg.className = "error";
+
+          return;
+        }
+
+        /* ---------------------------------------------
+           LẤY CÁC GIỜ UỐNG
+           --------------------------------------------- */
+
+        const timeInputs = document.querySelectorAll(".medicine-time");
+
+        const times = Array.from(timeInputs)
+          .map((input) => input.value)
+          .filter((value) => value);
+
+        /* ---------------------------------------------
+           KIỂM TRA ĐỦ GIỜ
+           --------------------------------------------- */
+
+        if (times.length !== numberOfTimes) {
+          msg.textContent =
+            "❌ Vui lòng chọn đủ " + numberOfTimes + " giờ uống thuốc.";
+
+          msg.className = "error";
+
+          return;
+        }
+
+        /* ---------------------------------------------
+           KIỂM TRA TRÙNG GIỜ
+           --------------------------------------------- */
+
+        const uniqueTimes = new Set(times);
+
+        if (uniqueTimes.size !== times.length) {
+          msg.textContent = "❌ Các giờ uống thuốc không được trùng nhau.";
+
+          msg.className = "error";
+
+          return;
+        }
+
+        /* ---------------------------------------------
+           SẮP XẾP GIỜ
+           --------------------------------------------- */
+
+        times.sort();
+
+        /* ---------------------------------------------
+           DỮ LIỆU GỬI SERVER
+           --------------------------------------------- */
+
+        const data = {
+          drug_name: drugName,
+
+          dosage: null,
+
+          times_per_day: numberOfTimes,
+
+          start_date: startDate,
+
+          end_date: endDate,
+
+          note: "Tần suất: " + numberOfTimes + " lần/ngày",
+
+          times: times,
+        };
+
+        console.log("Dữ liệu gửi API:", data);
+
+        /* ---------------------------------------------
+           GỌI API
+           --------------------------------------------- */
+
+        try {
+          const token = getToken();
+
+          if (!token) {
+            throw new Error("Bạn chưa đăng nhập.");
+          }
+
+          const headers = {
+            "Content-Type": "application/json",
+
+            Authorization: "Bearer " + token,
+          };
+
+          const response = await fetch("/api/medications", {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify(data),
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(
+              result.detail ||
+                result.message ||
+                "Không thể lưu lịch uống thuốc.",
+            );
+          }
+
+          /* ---------------------------------------------
+               THÀNH CÔNG
+               --------------------------------------------- */
+
+          msg.textContent = "✅ Đã lưu lịch uống thuốc.";
+
+          msg.className = "success";
+
+          console.log("Đã tạo MedId:", result.med_id);
+
+          /*
+               Chuyển về trang thuốc
+            */
+
+          setTimeout(function () {
+            window.location.href = "/medications";
+          }, 700);
+        } catch (error) {
+          console.error("Lỗi lưu thuốc:", error);
+
+          msg.textContent = "❌ " + error.message;
+
+          msg.className = "error";
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,74 @@
+version: "3.1"
+
+intents:
+  - greet
+  - goodbye
+  - affirm
+  - deny
+  - mood_great
+  - mood_unhappy
+  - bot_challenge
+  - symptom_check
+
+responses:
+  utter_greet:
+  - text: "Xin chào, bạn thấy thế nào?"
+
+  utter_cheer_up:
+  - text: "Here is something to cheer you up:"
+    image: "https://i.imgur.com/nGF1K8f.jpg"
+
+  utter_did_that_help:
+  - text: "Did that help you?"
+
+  utter_happy:
+  - text: "Great, carry on!"
+
+  utter_goodbye:
+  - text: "Chúc bạn mau khỏe nhe! Tạm biệt!!!"
+
+  utter_iamabot:
+  - text: "I am a bot, powered by Rasa."
+
+  utter_symptom_check:
+        - text: "Bạn nên nghỉ ngơi nhiều, uống nước ấm và giữ ấm cơ thể."
+        - text: "Nếu khó thở hoặc sốt cao kéo dài, hãy đến bệnh viện ngay."
+        - text: "Tránh bụi, khói thuốc và dị nguyên. Nếu khó thở nặng, dùng thuốc theo chỉ định bác sĩ."
+        - text: "Ăn uống điều độ, tránh cay nóng, rượu bia. Nếu đau dữ dội hoặc nôn ra máu, đi khám."
+        - text: "Nếu xuất huyết tiêu hóa, cần nhập viện khẩn cấp."
+        - text: "Tránh rượu bia, ăn uống lành mạnh. Nếu vàng da hoặc mệt mỏi kéo dài, đi khám chuyên khoa gan."
+        - text: "Uống nhiều nước, hạn chế muối. Nếu đau dữ dội hoặc tiểu ra máu nhiều, đi khám ngay."
+        - text: "Uống nhiều nước, giữ vệ sinh. Nếu tiểu ra máu hoặc sốt cao, đi khám."
+        - text: "Rửa mũi bằng nước muối, giữ ấm. Nếu đau đầu dữ dội hoặc sốt cao, đi khám."
+        - text: "Vận động nhẹ, tránh mang nặng. Nếu khớp sưng đỏ hoặc đau kéo dài, đi khám."
+        - text: "Bổ sung canxi, vitamin D, tập luyện nhẹ. Nếu gãy xương, điều trị ngay."
+        - text: "Ăn thực phẩm giàu sắt, vitamin B12. Nếu nặng, cần xét nghiệm máu."
+        - text: "Kiểm soát ăn uống, tập luyện. Nếu đường huyết cao hoặc biến chứng, đi khám."
+        - text: "Ăn nhạt, tập luyện thường xuyên. Nếu huyết áp quá cao hoặc đau ngực, cấp cứu."
+        - text: "Đây là cấp cứu, gọi ngay để điều trị kịp thời."
+        - text: "Chia sẻ với người thân, duy trì thói quen lành mạnh. Nếu có ý nghĩ tự tử, cần hỗ trợ y tế."
+        - text: "Tập thở sâu, thư giãn, hạn chế caffeine. Nếu kéo dài, đi khám tâm lý."
+        - text: "Giữ vệ sinh da, tránh gãi mạnh. Nếu lan rộng hoặc nổi mụn nước, đi khám da liễu."
+        - text: "Giữ vệ sinh vùng da, tránh gãi. Nếu đau nhiều hoặc lan rộng, đi khám."
+        - text: "Đi khám nội tiết để kiểm tra tuyến giáp. Nếu kéo dài, điều trị theo chỉ định."
+        - text: "Hạn chế chất kích thích, đi khám nội tiết. Nếu tim đập nhanh hoặc khó thở, cấp cứu."
+        - text: "Nghỉ ngơi, uống nước ấm, giữ ấm. Nếu kéo dài >7 ngày, đi khám."
+        - text: "Súc miệng nước muối, uống nhiều nước, hạn chế nói to. Nếu đau dữ dội hoặc sốt cao, đi khám."
+        - text: "Ăn uống nhẹ, tránh dầu mỡ, uống nhiều nước. Nếu tiêu chảy >3 ngày hoặc mất nước, đi khám."
+        - text: "Uống nhiều nước, ăn nhiều chất xơ, vận động nhẹ. Nếu kéo dài >1 tuần, đi khám."
+        - text: "Tránh tiếp xúc dị nguyên, giữ vệ sinh. Nếu khó thở hoặc nổi mẩn toàn thân, đi khám ngay."
+        - text: "Nghỉ ngơi nơi yên tĩnh, uống đủ nước. Nếu đau dữ dội kèm nôn ói hoặc rối loạn thị giác, đi khám."
+        - text: "Nghỉ ngơi, tránh vận động quá sức. Nếu đau >2 tuần hoặc sưng khớp, đi khám."
+        - text: "Giữ vệ sinh mắt, tránh dụi. Nếu đỏ mắt >3 ngày hoặc có mủ, đi khám."
+        - text: "Theo dõi tình trạng. Nếu đau nhiều, sốt cao hoặc chảy dịch tai, cần đi khám ngay."
+        - text: "Duy trì thói quen ngủ đúng giờ, hạn chế dùng thiết bị điện tử trước khi ngủ. Nếu mất ngủ kéo dài >2 tuần, cần đi khám."
+        - text: "Nếu khó thở hoặc đau ngực xuất hiện đột ngột hoặc nghiêm trọng, cần tìm kiếm sự chăm sóc y tế ngay."
+
+actions:
+  - action_check_symptoms
+
+
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true
+

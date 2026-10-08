@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>HealthBot - Trang chủ</title>
+
+    <!-- ?v=3 để trình duyệt không dùng CSS cũ -->
+    <link rel="stylesheet" href="/static/home.css?v=3" />
+  </head>
+
+  <body>
+    <div class="app">
+      <!-- ================= SIDEBAR ================= -->
+      <aside class="sidebar">
+        <div class="logo-area">
+          <div class="logo-icon">🏥</div>
+
+          <div>
+            <div class="logo-title">HealthBot</div>
+            <div class="logo-subtitle">Trợ lý sức khỏe</div>
+          </div>
+        </div>
+
+        <div class="menu-title">MENU CHÍNH</div>
+
+        <nav class="menu">
+          <a href="/home" class="menu-item active">
+            <span class="menu-icon">🏠</span>
+            <span>Trang chủ</span>
+          </a>
+
+          <a href="/chat" class="menu-item">
+            <span class="menu-icon">🤖</span>
+            <span>Chatbot AI</span>
+          </a>
+
+          <a href="/symptoms" class="menu-item">
+            <span class="menu-icon">🩺</span>
+            <span>Phân tích triệu chứng</span>
+          </a>
+
+          <a href="/medications" class="menu-item">
+            <span class="menu-icon">💊</span>
+            <span>Nhắc uống thuốc</span>
+          </a>
+
+          <a href="/appointments" class="menu-item">
+            <span class="menu-icon">📅</span>
+            <span>Lịch tái khám</span>
+          </a>
+
+          <button id="exportReportBtn" class="menu-item menu-button">
+            <span class="menu-icon">📊</span>
+            <span>Xuất báo cáo</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="health-tip-small">
+            <div class="tip-icon">💙</div>
+            <div>
+              <strong>Chăm sóc sức khỏe</strong>
+              <p>Theo dõi sức khỏe mỗi ngày.</p>
+            </div>
+          </div>
+
+          <button id="logoutBtn" class="logout-button">🚪 Đăng xuất</button>
+        </div>
+      </aside>
+
+      <!-- ================= MAIN ================= -->
+      <main class="main">
+        <!-- TOPBAR -->
+        <header class="topbar">
+          <div>
+            <h1>Trang chủ</h1>
+            <p>Quản lý và theo dõi sức khỏe của bạn</p>
+          </div>
+
+          <div class="user-area">
+            <div class="notification">
+              🔔
+              <span id="notificationCount" class="notification-count">0</span>
+            </div>
+
+            <div class="user-info">
+              <div id="userAvatar" class="avatar">U</div>
+
+              <div>
+                <strong id="userName">Người dùng</strong>
+                <span id="userRole">Thành viên</span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- CONTENT -->
+        <section class="content">
+          <!-- WELCOME -->
+          <div class="welcome">
+            <div class="welcome-text">
+              <span class="welcome-label">HEALTHBOT</span>
+
+              <h2>Xin chào, <span id="welcomeName">bạn</span>! 👋</h2>
+
+              <p>
+                Chào mừng bạn đến với HealthBot. Hãy quản lý và theo dõi sức
+                khỏe của bạn một cách thuận tiện.
+              </p>
+            </div>
+
+            <div class="welcome-icon">🩺</div>
+          </div>
+
+          <!-- TITLE -->
+          <div class="section-title">
+            <div>
+              <h2>Chức năng chính</h2>
+              <p>Các công cụ hỗ trợ chăm sóc sức khỏe</p>
+            </div>
+          </div>
+
+          <!-- FEATURES -->
+          <div class="feature-grid">
+            <a href="/chat" class="feature-card">
+              <div class="feature-icon chatbot">🤖</div>
+
+              <h3>Chatbot AI</h3>
+
+              <p>Trò chuyện với AI để nhận tư vấn sức khỏe cơ bản.</p>
+
+              <span class="feature-link"> Mở chức năng → </span>
+            </a>
+
+            <a href="/symptoms" class="feature-card">
+              <div class="feature-icon symptom">🩺</div>
+
+              <h3>Phân tích triệu chứng</h3>
+
+              <p>Nhập triệu chứng để thực hiện phân tích sức khỏe sơ bộ.</p>
+
+              <span class="feature-link"> Mở chức năng → </span>
+            </a>
+
+            <a href="/medications" class="feature-card">
+              <div class="feature-icon medicine">💊</div>
+
+              <h3>Nhắc uống thuốc</h3>
+
+              <p>Quản lý thuốc và theo dõi lịch uống thuốc.</p>
+
+              <span class="feature-link"> Mở chức năng → </span>
+            </a>
+
+            <a href="/appointments" class="feature-card">
+              <div class="feature-icon appointment">📅</div>
+
+              <h3>Lịch tái khám</h3>
+
+              <p>Lưu và quản lý các lịch tái khám của bạn.</p>
+
+              <span class="feature-link"> Mở chức năng → </span>
+            </a>
+          </div>
+
+          <!-- OVERVIEW -->
+          <div class="section-title overview-title">
+            <div>
+              <h2>Tổng quan</h2>
+              <p>Thông tin sức khỏe và hoạt động gần đây</p>
+            </div>
+          </div>
+
+          <div class="overview-grid">
+            <div class="overview-card">
+              <div class="overview-icon">💬</div>
+              <div>
+                <span>Chatbot</span>
+                <strong>Hỗ trợ 24/7</strong>
+              </div>
+            </div>
+
+            <div class="overview-card">
+              <div class="overview-icon">🩺</div>
+              <div>
+                <span>Triệu chứng</span>
+                <strong>Phân tích sơ bộ</strong>
+              </div>
+            </div>
+
+            <div class="overview-card">
+              <div class="overview-icon">💊</div>
+              <div>
+                <span>Thuốc</span>
+                <strong>Quản lý lịch uống</strong>
+              </div>
+            </div>
+
+            <div class="overview-card">
+              <div class="overview-icon">📅</div>
+              <div>
+                <span>Tái khám</span>
+                <strong>Quản lý lịch hẹn</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- REPORT -->
+          <div class="report-box">
+            <div class="report-icon">📊</div>
+
+            <div class="report-content">
+              <h2>Xuất báo cáo sức khỏe</h2>
+
+              <p>
+                Tải xuống báo cáo tổng hợp gồm triệu chứng, thuốc, lịch uống
+                thuốc, lịch tái khám và lịch sử chatbot.
+              </p>
+            </div>
+
+            <button id="exportReportMainBtn" class="report-button">
+              📥 Xuất báo cáo
+            </button>
+          </div>
+
+          <!-- FOOTER -->
+          <footer>
+            <p>HealthBot © 2026 · Trợ lý chăm sóc sức khỏe</p>
+          </footer>
+        </section>
+      </main>
+    </div>
+
+    <script src="/static/home.js?v=3"></script>
+  </body>
+</html>

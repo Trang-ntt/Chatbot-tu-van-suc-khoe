@@ -1,0 +1,1413 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Hệ thống Tái khám & Chatbot AI</title>
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: #f5f7fb;
+        color: #1f2937;
+      }
+
+      .layout {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* ================= SIDEBAR ================= */
+
+      .sidebar {
+        width: 270px;
+        background: white;
+        border-right: 1px solid #e5e7eb;
+        padding: 25px 18px;
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        overflow-y: auto;
+      }
+
+      .logo {
+        text-align: center;
+        margin-bottom: 25px;
+      }
+
+      .logo-icon {
+        font-size: 50px;
+      }
+
+      .logo h2 {
+        margin: 8px 0 4px;
+        font-size: 20px;
+      }
+
+      .logo p {
+        margin: 0;
+        color: #6b7280;
+        font-size: 13px;
+      }
+
+      .menu-title {
+        margin: 25px 0 10px;
+        font-size: 13px;
+        color: #6b7280;
+        font-weight: 600;
+      }
+
+      .menu button {
+        width: 100%;
+        text-align: left;
+        border: none;
+        background: transparent;
+        padding: 13px 12px;
+        margin-bottom: 5px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .menu button:hover {
+        background: #eef4ff;
+      }
+
+      .menu button.active {
+        background: #e8f1ff;
+        color: #1769e0;
+        font-weight: 600;
+      }
+
+      .statistics {
+        border-top: 1px solid #e5e7eb;
+        margin-top: 20px;
+        padding-top: 18px;
+      }
+
+      .statistics h3 {
+        font-size: 15px;
+      }
+
+      .stat {
+        display: flex;
+        justify-content: space-between;
+        margin: 10px 0;
+        font-size: 14px;
+      }
+
+      .stat strong {
+        color: #1769e0;
+      }
+
+      /* ================= MAIN ================= */
+
+      .main {
+        margin-left: 270px;
+        width: calc(100% - 270px);
+        padding: 35px;
+      }
+
+      .topbar {
+        margin-bottom: 25px;
+      }
+
+      .topbar a {
+        color: #1769e0;
+        text-decoration: none;
+      }
+
+      .page {
+        display: none;
+      }
+
+      .page.active {
+        display: block;
+      }
+
+      .main-header {
+        font-size: 26px;
+        font-weight: bold;
+        margin-bottom: 20px;
+      }
+
+      .card {
+        background: white;
+        border-radius: 12px;
+        padding: 22px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      }
+
+      .card h2,
+      .card h3 {
+        margin-top: 0;
+      }
+
+      /* ================= FORM ================= */
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+
+      .form-group {
+        margin-bottom: 14px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        padding: 11px;
+        border: 1px solid #d1d5db;
+        border-radius: 7px;
+        font-family: inherit;
+        font-size: 14px;
+      }
+
+      textarea {
+        min-height: 90px;
+        resize: vertical;
+      }
+
+      button.primary {
+        background: #1769e0;
+        color: white;
+        border: none;
+        border-radius: 7px;
+        padding: 11px 18px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      button.primary:hover {
+        opacity: 0.9;
+      }
+
+      button.danger {
+        background: #dc2626;
+        color: white;
+        border: none;
+        border-radius: 7px;
+        padding: 11px 18px;
+        cursor: pointer;
+      }
+
+      button.success {
+        background: #16a34a;
+        color: white;
+        border: none;
+        border-radius: 7px;
+        padding: 11px 18px;
+        cursor: pointer;
+      }
+
+      /* ================= TABLE ================= */
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid #e5e7eb;
+        padding: 12px 8px;
+        text-align: left;
+        font-size: 14px;
+      }
+
+      th {
+        background: #f9fafb;
+      }
+
+      /* ================= BADGE ================= */
+
+      .badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .badge-upcoming {
+        background: #e8f1ff;
+        color: #1769e0;
+      }
+
+      .badge-cancelled {
+        background: #fee2e2;
+        color: #dc2626;
+      }
+
+      .badge-confirmed {
+        background: #dcfce7;
+        color: #15803d;
+      }
+
+      /* ================= CHAT ================= */
+
+      .chat-box {
+        background: #f9fafb;
+        border-radius: 10px;
+        padding: 18px;
+        min-height: 350px;
+        margin-bottom: 15px;
+      }
+
+      .message {
+        padding: 12px 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        max-width: 80%;
+        white-space: pre-line;
+      }
+
+      .message.bot {
+        background: white;
+        border: 1px solid #e5e7eb;
+      }
+
+      .message.user {
+        background: #1769e0;
+        color: white;
+        margin-left: auto;
+      }
+
+      .chat-input {
+        display: flex;
+        gap: 10px;
+      }
+
+      .chat-input input {
+        flex: 1;
+      }
+
+      /* ================= NOTICE ================= */
+
+      .notice {
+        padding: 13px;
+        background: #eff6ff;
+        border-left: 4px solid #1769e0;
+        border-radius: 6px;
+        margin-bottom: 15px;
+      }
+
+      .message-success {
+        color: #15803d;
+        margin-top: 10px;
+      }
+
+      .message-error {
+        color: #dc2626;
+        margin-top: 10px;
+      }
+
+      @media (max-width: 850px) {
+        .sidebar {
+          width: 220px;
+        }
+
+        .main {
+          margin-left: 220px;
+          width: calc(100% - 220px);
+          padding: 20px;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="layout">
+      <!-- ================================================= -->
+      <!-- SIDEBAR -->
+      <!-- ================================================= -->
+
+      <aside class="sidebar">
+        <div class="logo">
+          <div class="logo-icon">🏥</div>
+
+          <h2>HỆ THỐNG Y TẾ</h2>
+
+          <p>Chức năng: Nhắc lịch tái khám & Chatbot AI</p>
+        </div>
+
+        <div class="menu-title">Danh mục quản lý</div>
+
+        <div class="menu">
+          <button class="active" onclick="showPage('overview', this)">
+            📌 Tổng quan & Danh sách lịch
+          </button>
+
+          <button onclick="showPage('create', this)">
+            ➕ Tạo lịch tái khám
+          </button>
+
+          <button onclick="showPage('edit', this)">
+            ✏️ Chỉnh sửa & Hủy lịch
+          </button>
+
+          <button onclick="showPage('reminder', this)">
+            ⚙️ Thiết lập thông báo
+          </button>
+
+          <button onclick="showPage('chatbot', this)">
+            🤖 Chatbot AI tư vấn & đổi lịch
+          </button>
+        </div>
+
+        <div class="statistics">
+          <h3>📊 Thống kê nhanh</h3>
+
+          <div class="stat">
+            <span>Tổng số lịch</span>
+            <strong id="totalCount">0</strong>
+          </div>
+
+          <div class="stat">
+            <span>Lịch sắp tới</span>
+            <strong id="upcomingCount">0</strong>
+          </div>
+
+          <div class="stat">
+            <span>Đã xác nhận</span>
+            <strong id="confirmedCount">0</strong>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ================================================= -->
+      <!-- MAIN -->
+      <!-- ================================================= -->
+
+      <main class="main">
+        <div class="topbar">
+          <a href="/home">← Trang chủ</a>
+        </div>
+
+        <!-- ================================================= -->
+        <!-- 1. TỔNG QUAN -->
+        <!-- ================================================= -->
+
+        <section id="overview" class="page active">
+          <div class="main-header">📋 Quản Lý & Xem Chi Tiết Lịch Tái Khám</div>
+
+          <div class="card">
+            <h3>Danh sách lịch</h3>
+
+            <div class="form-group">
+              <label> Lọc theo trạng thái </label>
+
+              <select id="filterStatus" onchange="renderAppointments()">
+                <option value="all">Tất cả</option>
+
+                <option value="upcoming">Sắp tới</option>
+
+                <option value="completed">Hoàn thành</option>
+
+                <option value="cancelled">Đã hủy</option>
+              </select>
+            </div>
+
+            <div id="appointmentTable">Đang tải...</div>
+          </div>
+
+          <div class="card">
+            <h3>🔍 Xem chi tiết & Xác nhận tham gia</h3>
+
+            <div class="form-group">
+              <label> Chọn mã lịch hẹn </label>
+
+              <select id="detailSelect" onchange="showDetail()"></select>
+            </div>
+
+            <div id="appointmentDetail">Chưa chọn lịch.</div>
+          </div>
+        </section>
+
+        <!-- ================================================= -->
+        <!-- 2. TẠO LỊCH -->
+        <!-- ================================================= -->
+
+        <section id="create" class="page">
+          <div class="main-header">📝 Đăng Ký / Tạo Lịch Tái Khám Mới</div>
+
+          <div class="card">
+            <div class="grid">
+              <div>
+                <div class="form-group">
+                  <label> Họ và tên bệnh nhân * </label>
+
+                  <input id="createPatient" placeholder="Họ và tên" />
+                </div>
+
+                <div class="form-group">
+                  <label> Số điện thoại </label>
+
+                  <input id="createPhone" placeholder="Số điện thoại" />
+                </div>
+
+                <div class="form-group">
+                  <label> Bác sĩ phụ trách </label>
+
+                  <input id="createDoctor" value="BS. Nguyễn Văn A" />
+                </div>
+
+                <div class="form-group">
+                  <label> Địa điểm khám </label>
+
+                  <input id="createLocation" value="Phòng khám" />
+                </div>
+              </div>
+
+              <div>
+                <div class="form-group">
+                  <label> Ngày và giờ tái khám </label>
+
+                  <input id="createTime" type="datetime-local" />
+                </div>
+
+                <div class="form-group">
+                  <label> Nội dung / Lý do tái khám </label>
+
+                  <input id="createContent" value="Tái khám định kỳ" />
+                </div>
+
+                <div class="form-group">
+                  <label> Ghi chú / Lời dặn </label>
+
+                  <textarea id="createNote">Mang theo hồ sơ khám cũ</textarea>
+                </div>
+              </div>
+            </div>
+
+            <button class="primary" onclick="createAppointment()">
+              🚀 Lưu Lịch Tái Khám
+            </button>
+
+            <div id="createMsg"></div>
+          </div>
+        </section>
+
+        <!-- ================================================= -->
+        <!-- 3. CHỈNH SỬA / HỦY -->
+        <!-- ================================================= -->
+
+        <section id="edit" class="page">
+          <div class="main-header">⚙️ Chỉnh Sửa Hoặc Hủy Lịch Tái Khám</div>
+
+          <div class="card">
+            <div class="form-group">
+              <label> Chọn mã lịch tái khám </label>
+
+              <select id="editSelect" onchange="loadEditForm()"></select>
+            </div>
+          </div>
+
+          <div id="editArea" class="card">Chưa chọn lịch.</div>
+        </section>
+
+        <!-- ================================================= -->
+        <!-- 4. THÔNG BÁO -->
+        <!-- ================================================= -->
+
+        <section id="reminder" class="page">
+          <div class="main-header">🔔 Thiết Lập Thời Gian Nhắc & Thông Báo</div>
+
+          <div class="card">
+            <div class="notice">
+              🔔 Hệ thống hiện chỉ sử dụng
+              <b>Thông báo trên Web/App</b>.
+
+              <br /><br />
+
+              Email và SMS đã được loại bỏ.
+            </div>
+
+            <div class="form-group">
+              <label> Chọn mã lịch cần thiết lập </label>
+
+              <select id="reminderSelect" onchange="loadReminder()"></select>
+            </div>
+
+            <div id="reminderArea">Chưa chọn lịch.</div>
+          </div>
+        </section>
+
+        <!-- ================================================= -->
+        <!-- 5. CHATBOT -->
+        <!-- ================================================= -->
+
+        <section id="chatbot" class="page">
+          <div class="main-header">🤖 Chatbot AI Tư Vấn & Trợ Lý Tái Khám</div>
+
+          <p>Tra cứu lịch hẹn hoặc yêu cầu hỗ trợ đổi lịch.</p>
+
+          <div id="chatBox" class="chat-box">
+            <div class="message bot">
+              Xin chào! Tôi là Trợ lý AI y tế. Bạn muốn tra cứu lịch tái khám
+              hay hỗ trợ yêu cầu đổi lịch?
+            </div>
+          </div>
+
+          <div class="chat-input">
+            <input id="chatInput" placeholder="Nhập câu hỏi..." />
+
+            <button class="primary" onclick="sendChat()">Gửi</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const token = localStorage.getItem("healthbot_token");
+
+      if (!token) {
+        location.href = "/";
+      }
+
+      let appointments = [];
+
+      /* ============================================================
+   API
+============================================================ */
+
+      async function api(url, options = {}) {
+        options.headers = {
+          ...(options.headers || {}),
+          Authorization: "Bearer " + token,
+        };
+
+        const response = await fetch(url, options);
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Có lỗi xảy ra.");
+        }
+
+        return data;
+      }
+
+      /* ============================================================
+   LOAD
+============================================================ */
+
+      async function loadAppointments() {
+        try {
+          appointments = await api("/api/appointments/mine");
+
+          updateStatistics();
+
+          renderAppointments();
+
+          fillSelects();
+
+          showDetail();
+
+          loadEditForm();
+
+          loadReminder();
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      /* ============================================================
+   SIDEBAR
+============================================================ */
+
+      function showPage(pageId, button) {
+        document.querySelectorAll(".page").forEach((page) => {
+          page.classList.remove("active");
+        });
+
+        document.getElementById(pageId).classList.add("active");
+
+        document.querySelectorAll(".menu button").forEach((btn) => {
+          btn.classList.remove("active");
+        });
+
+        button.classList.add("active");
+
+        if (pageId === "overview") {
+          renderAppointments();
+        }
+
+        if (pageId === "edit") {
+          loadEditForm();
+        }
+
+        if (pageId === "reminder") {
+          loadReminder();
+        }
+      }
+
+      /* ============================================================
+   STATISTICS
+============================================================ */
+
+      function updateStatistics() {
+        document.getElementById("totalCount").textContent = appointments.length;
+
+        document.getElementById("upcomingCount").textContent =
+          appointments.filter(
+            (x) => x.Status === "upcoming" || x.Status === "Sắp tới",
+          ).length;
+
+        document.getElementById("confirmedCount").textContent =
+          appointments.filter((x) => x.ConfirmedAt).length;
+      }
+
+      /* ============================================================
+   FORMAT
+============================================================ */
+
+      function formatDate(value) {
+        if (!value) return "";
+
+        return String(value).replace("T", " ").substring(0, 16);
+      }
+
+      function statusText(status) {
+        if (status === "upcoming") return "Sắp tới";
+
+        if (status === "completed") return "Hoàn thành";
+
+        if (status === "cancelled") return "Đã hủy";
+
+        return status || "Sắp tới";
+      }
+
+      /* ============================================================
+   TABLE
+============================================================ */
+
+      function renderAppointments() {
+        const filter = document.getElementById("filterStatus").value;
+
+        let data = appointments;
+
+        if (filter !== "all") {
+          data = appointments.filter((x) => x.Status === filter);
+        }
+
+        if (!data.length) {
+          document.getElementById("appointmentTable").innerHTML =
+            "<p>Chưa có lịch tái khám nào.</p>";
+
+          return;
+        }
+
+        let html = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Mã lịch</th>
+                    <th>Bác sĩ</th>
+                    <th>Ngày khám</th>
+                    <th>Giờ</th>
+                    <th>Trạng thái</th>
+                    <th>Xác nhận</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+        data.forEach((item) => {
+          const dt = formatDate(item.ApptTime);
+
+          const parts = dt.split(" ");
+
+          const status = statusText(item.Status);
+
+          html += `
+            <tr>
+                <td>${item.ApptId}</td>
+
+                <td>
+                    ${item.DoctorName || ""}
+                </td>
+
+                <td>
+                    ${parts[0] || ""}
+                </td>
+
+                <td>
+                    ${parts[1] || ""}
+                </td>
+
+                <td>
+                    <span class="badge badge-upcoming">
+                        ${status}
+                    </span>
+                </td>
+
+                <td>
+                    ${item.ConfirmedAt ? "✅ Đã xác nhận" : "⚠️ Chưa xác nhận"}
+                </td>
+            </tr>
+        `;
+        });
+
+        html += `
+            </tbody>
+        </table>
+    `;
+
+        document.getElementById("appointmentTable").innerHTML = html;
+      }
+
+      /* ============================================================
+   SELECT
+============================================================ */
+
+      function fillSelects() {
+        const selects = ["detailSelect", "editSelect", "reminderSelect"];
+
+        selects.forEach((id) => {
+          const select = document.getElementById(id);
+
+          if (!select) return;
+
+          select.innerHTML = "";
+
+          appointments.forEach((item) => {
+            const option = document.createElement("option");
+
+            option.value = item.ApptId;
+
+            option.textContent = `#${item.ApptId} - ${item.DoctorName} - ${formatDate(item.ApptTime)}`;
+
+            select.appendChild(option);
+          });
+        });
+      }
+
+      /* ============================================================
+   DETAIL
+============================================================ */
+
+      function showDetail() {
+        const select = document.getElementById("detailSelect");
+
+        if (!select || !select.value) {
+          document.getElementById("appointmentDetail").innerHTML =
+            "Chưa có lịch.";
+
+          return;
+        }
+
+        const item = appointments.find(
+          (x) => Number(x.ApptId) === Number(select.value),
+        );
+
+        if (!item) return;
+
+        document.getElementById("appointmentDetail").innerHTML = `
+
+        <div class="grid">
+
+            <div>
+                <p>
+                    <b>Bác sĩ:</b>
+                    ${item.DoctorName || ""}
+                </p>
+
+                <p>
+                    <b>Địa điểm:</b>
+                    ${item.Location || ""}
+                </p>
+
+                <p>
+                    <b>Thời gian:</b>
+                    ${formatDate(item.ApptTime)}
+                </p>
+            </div>
+
+            <div>
+
+                <p>
+                    <b>Nội dung khám:</b>
+                    ${item.Content || ""}
+                </p>
+
+                <p>
+                    <b>Ghi chú:</b>
+                    ${item.Note || ""}
+                </p>
+
+                <p>
+                    <b>Trạng thái:</b>
+                    ${statusText(item.Status)}
+                </p>
+
+            </div>
+
+        </div>
+
+        ${
+          item.ConfirmedAt
+            ? `
+                <div class="notice">
+                    ✅ Bạn đã xác nhận tham gia lịch này.
+                </div>
+              `
+            : `
+                <button
+                    class="success"
+                    onclick="confirmAppointment(${item.ApptId})">
+                    👍 Bệnh nhân xác nhận tham gia
+                </button>
+              `
+        }
+
+    `;
+      }
+
+      /* ============================================================
+   CREATE
+============================================================ */
+
+      async function createAppointment() {
+        const doctor = document.getElementById("createDoctor").value.trim();
+
+        const location = document.getElementById("createLocation").value.trim();
+
+        const time = document.getElementById("createTime").value;
+
+        const content = document.getElementById("createContent").value.trim();
+
+        const note = document.getElementById("createNote").value.trim();
+
+        if (!doctor || !time) {
+          showMessage("createMsg", "Vui lòng nhập bác sĩ và thời gian.", true);
+
+          return;
+        }
+
+        try {
+          await api("/api/appointments", {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json",
+            },
+
+            body: JSON.stringify({
+              doctor_name: doctor,
+
+              location: location,
+
+              appt_time: time,
+
+              content: content,
+
+              note: note,
+
+              remind_before: 1440,
+            }),
+          });
+
+          showMessage("createMsg", "✅ Tạo lịch tái khám thành công.", false);
+
+          await loadAppointments();
+        } catch (error) {
+          showMessage("createMsg", error.message, true);
+        }
+      }
+
+      /* ============================================================
+   CONFIRM
+============================================================ */
+
+      async function confirmAppointment(id) {
+        try {
+          await api(`/api/appointments/${id}/confirm`, {
+            method: "PATCH",
+          });
+
+          await loadAppointments();
+
+          alert("Đã ghi nhận xác nhận tham gia.");
+        } catch (error) {
+          alert(error.message);
+        }
+      }
+
+      /* ============================================================
+   EDIT
+============================================================ */
+
+      function loadEditForm() {
+        const select = document.getElementById("editSelect");
+
+        const area = document.getElementById("editArea");
+
+        if (!select || !area) return;
+
+        if (!select.value) {
+          area.innerHTML = "Chưa có lịch.";
+
+          return;
+        }
+
+        const item = appointments.find(
+          (x) => Number(x.ApptId) === Number(select.value),
+        );
+
+        if (!item) return;
+
+        let dateValue = String(item.ApptTime || "")
+          .replace(" ", "T")
+          .substring(0, 16);
+
+        area.innerHTML = `
+
+        <h3>
+            ✏️ Chỉnh sửa thông tin
+        </h3>
+
+        <div class="grid">
+
+            <div>
+
+                <div class="form-group">
+
+                    <label>
+                        Bác sĩ phụ trách
+                    </label>
+
+                    <input
+                        id="editDoctor"
+                        value="${item.DoctorName || ""}">
+
+                </div>
+
+                <div class="form-group">
+
+                    <label>
+                        Địa điểm
+                    </label>
+
+                    <input
+                        id="editLocation"
+                        value="${item.Location || ""}">
+
+                </div>
+
+            </div>
+
+
+            <div>
+
+                <div class="form-group">
+
+                    <label>
+                        Ngày và giờ tái khám
+                    </label>
+
+                    <input
+                        id="editTime"
+                        type="datetime-local"
+                        value="${dateValue}">
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>
+                Nội dung khám
+            </label>
+
+            <input
+                id="editContent"
+                value="${item.Content || ""}">
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>
+                Ghi chú
+            </label>
+
+            <textarea
+                id="editNote">${item.Note || ""}</textarea>
+
+        </div>
+
+
+        <button
+            class="primary"
+            onclick="updateAppointment(${item.ApptId})">
+
+            Cập nhật lịch
+
+        </button>
+
+        <button
+            class="danger"
+            onclick="cancelAppointment(${item.ApptId})">
+
+            ❌ Hủy lịch hẹn
+
+        </button>
+
+        <div
+            class="message-success"
+            id="editMsg">
+        </div>
+
+    `;
+      }
+
+      async function updateAppointment(id) {
+        try {
+          await api(`/api/appointments/${id}`, {
+            method: "PATCH",
+
+            headers: {
+              "Content-Type": "application/json",
+            },
+
+            body: JSON.stringify({
+              doctor_name: document.getElementById("editDoctor").value,
+
+              location: document.getElementById("editLocation").value,
+
+              appt_time: document.getElementById("editTime").value,
+
+              content: document.getElementById("editContent").value,
+
+              note: document.getElementById("editNote").value,
+            }),
+          });
+
+          alert("Đã cập nhật lịch tái khám.");
+
+          await loadAppointments();
+        } catch (error) {
+          alert(error.message);
+        }
+      }
+
+      async function cancelAppointment(id) {
+        if (!confirm("Bạn có chắc muốn hủy lịch này?")) {
+          return;
+        }
+
+        try {
+          await api(`/api/appointments/${id}/cancel`, {
+            method: "PATCH",
+          });
+
+          alert("Đã hủy lịch tái khám.");
+
+          await loadAppointments();
+        } catch (error) {
+          alert(error.message);
+        }
+      }
+
+      /* ============================================================
+   REMINDER
+============================================================ */
+
+      function loadReminder() {
+        const select = document.getElementById("reminderSelect");
+
+        const area = document.getElementById("reminderArea");
+
+        if (!select || !area) return;
+
+        if (!select.value) {
+          area.innerHTML = "Chưa có lịch.";
+
+          return;
+        }
+
+        const item = appointments.find(
+          (x) => Number(x.ApptId) === Number(select.value),
+        );
+
+        if (!item) return;
+
+        const current = Number(item.RemindBefore || 1440);
+
+        area.innerHTML = `
+
+        <h3>
+            ⏱️ Thiết lập thời gian nhắc
+        </h3>
+
+        <div class="form-group">
+
+            <label>
+                Chọn mốc thời gian nhắc trước
+            </label>
+
+            <select id="reminderTime">
+
+                <option
+                    value="60"
+                    ${current === 60 ? "selected" : ""}>
+                    1 giờ
+                </option>
+
+                <option
+                    value="180"
+                    ${current === 180 ? "selected" : ""}>
+                    3 giờ
+                </option>
+
+                <option
+                    value="1440"
+                    ${current === 1440 ? "selected" : ""}>
+                    1 ngày
+                </option>
+
+                <option
+                    value="2880"
+                    ${current === 2880 ? "selected" : ""}>
+                    2 ngày
+                </option>
+
+                <option
+                    value="10080"
+                    ${current === 10080 ? "selected" : ""}>
+                    1 tuần
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div class="notice">
+
+            🔔 <b>Kênh thông báo:</b>
+            Web/App Notification
+
+            <br><br>
+
+            Email và SMS đã được loại bỏ.
+
+        </div>
+
+
+        <button
+            class="primary"
+            onclick="saveReminder(${item.ApptId})">
+
+            Lưu cấu hình thông báo
+
+        </button>
+
+
+        <div style="margin-top:20px">
+
+            <h3>
+                🔁 Cơ chế nhắc lại
+            </h3>
+
+            <p>
+                Hệ thống sẽ hiển thị thông báo
+                trên Web/App khi đến thời điểm nhắc.
+            </p>
+
+            <p>
+                Số lần đã nhắc:
+                <b>${item.ReminderCount || 0}</b>
+            </p>
+
+        </div>
+
+    `;
+      }
+
+      async function saveReminder(id) {
+        const value = Number(document.getElementById("reminderTime").value);
+
+        try {
+          await api(`/api/appointments/${id}/reminder`, {
+            method: "PATCH",
+
+            headers: {
+              "Content-Type": "application/json",
+            },
+
+            body: JSON.stringify({
+              remind_before: value,
+            }),
+          });
+
+          alert("Đã lưu cấu hình thông báo Web/App.");
+
+          await loadAppointments();
+        } catch (error) {
+          alert(error.message);
+        }
+      }
+
+      /* ============================================================
+   CHATBOT
+============================================================ */
+
+      function addChatMessage(text, type) {
+        const box = document.getElementById("chatBox");
+
+        const div = document.createElement("div");
+
+        div.className = "message " + type;
+
+        div.textContent = text;
+
+        box.appendChild(div);
+
+        box.scrollTop = box.scrollHeight;
+      }
+
+      async function sendChat() {
+        const input = document.getElementById("chatInput");
+
+        const message = input.value.trim();
+
+        if (!message) return;
+
+        addChatMessage(message, "user");
+
+        input.value = "";
+
+        try {
+          /*
+           * Với câu hỏi tra cứu lịch,
+           * hiển thị dữ liệu lịch của user.
+           */
+
+          const lower = message.toLowerCase();
+
+          if (
+            lower.includes("xem lịch") ||
+            lower.includes("tra cứu lịch") ||
+            lower.includes("lịch tái khám")
+          ) {
+            if (!appointments.length) {
+              addChatMessage("Hiện tại bạn chưa có lịch tái khám nào.", "bot");
+
+              return;
+            }
+
+            const upcoming = appointments.filter(
+              (x) => x.Status !== "cancelled",
+            );
+
+            if (!upcoming.length) {
+              addChatMessage(
+                "Bạn hiện không có lịch tái khám đang hoạt động.",
+                "bot",
+              );
+
+              return;
+            }
+
+            let reply = "🏥 Thông tin lịch tái khám của bạn:\n\n";
+
+            upcoming.forEach((item) => {
+              reply += `📅 ${formatDate(item.ApptTime)}\n`;
+
+              reply += `👨‍⚕️ Bác sĩ: ${item.DoctorName || ""}\n`;
+
+              reply += `📍 Địa điểm: ${item.Location || ""}\n`;
+
+              reply += `📋 Nội dung: ${item.Content || ""}\n\n`;
+            });
+
+            addChatMessage(reply, "bot");
+
+            return;
+          }
+
+          /*
+           * Các câu hỏi khác chuyển sang
+           * chatbot Rasa hiện tại.
+           */
+
+          const data = await api("/api/chat", {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json",
+            },
+
+            body: JSON.stringify({
+              message: message,
+            }),
+          });
+
+          addChatMessage(data.reply || "Tôi đã ghi nhận câu hỏi.", "bot");
+        } catch (error) {
+          addChatMessage("Không thể kết nối chatbot: " + error.message, "bot");
+        }
+      }
+
+      /* ============================================================
+   MESSAGE
+============================================================ */
+
+      function showMessage(id, message, error) {
+        const element = document.getElementById(id);
+
+        element.textContent = message;
+
+        element.className = error ? "message-error" : "message-success";
+      }
+
+      /* ============================================================
+   ENTER CHAT
+============================================================ */
+
+      document
+        .getElementById("chatInput")
+        .addEventListener("keydown", function (event) {
+          if (event.key === "Enter") {
+            sendChat();
+          }
+        });
+
+      /* ============================================================
+   START
+============================================================ */
+
+      loadAppointments();
+    </script>
+  </body>
+</html>

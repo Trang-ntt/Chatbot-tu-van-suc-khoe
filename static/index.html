@@ -1,0 +1,1265 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>HealthBot – Đăng nhập & Quản trị</title>
+
+    <style>
+      :root {
+        --bg: #f3f7f6;
+        --ink: #17302c;
+        --mut: #5f7773;
+        --pri: #0f766e;
+        --pri2: #0b5c56;
+        --line: #d5e2df;
+        --card: #fff;
+        --bad: #b42318;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      /* =========================
+         ĐĂNG NHẬP
+         ========================= */
+
+      .auth {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+      }
+
+      .box {
+        width: 100%;
+        max-width: 400px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 28px;
+      }
+
+      h1 {
+        font-size: 22px;
+        margin: 0 0 4px;
+      }
+
+      .sub {
+        color: var(--mut);
+        margin: 0 0 20px;
+        font-size: 14px;
+      }
+
+      label {
+        display: block;
+        font-size: 13px;
+        margin: 12px 0 4px;
+      }
+
+      input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+
+      input:focus,
+      button:focus-visible,
+      select:focus-visible {
+        outline: 2px solid var(--pri);
+        outline-offset: 1px;
+      }
+
+      .btn {
+        width: 100%;
+        margin-top: 16px;
+        padding: 11px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--pri);
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .btn:hover {
+        background: var(--pri2);
+      }
+
+      .link {
+        background: none;
+        border: 0;
+        color: var(--pri);
+        cursor: pointer;
+        padding: 0;
+      }
+
+      .msg {
+        margin-top: 12px;
+        font-size: 13px;
+        min-height: 18px;
+      }
+
+      .msg.err {
+        color: var(--bad);
+      }
+
+      .msg.ok {
+        color: var(--pri);
+      }
+
+      .sw {
+        margin-top: 14px;
+        text-align: center;
+        font-size: 14px;
+        color: var(--mut);
+      }
+
+      /* =========================
+         ADMIN
+         ========================= */
+
+      .app {
+        display: grid;
+        grid-template-columns: 230px 1fr;
+        min-height: 100vh;
+      }
+
+      nav {
+        background: #0d3b36;
+        color: #d7ebe8;
+        padding: 20px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      nav .brand {
+        font-weight: 700;
+        font-size: 18px;
+        padding: 0 10px 16px;
+        color: #fff;
+      }
+
+      nav .nv {
+        padding: 10px;
+        border: 0;
+        background: none;
+        width: 100%;
+        text-align: left;
+        border-radius: 8px;
+        cursor: pointer;
+        color: inherit;
+        font-size: 14px;
+      }
+
+      nav .nv:hover {
+        background: #14524b;
+      }
+
+      nav .nv.on {
+        background: #fff;
+        color: #0d3b36;
+        font-weight: 600;
+      }
+
+      nav .nv:focus-visible {
+        outline: 2px solid #fff;
+        outline-offset: 1px;
+      }
+
+      nav .grp {
+        font-size: 12px;
+        color: #8fb9b3;
+        padding: 14px 10px 4px;
+      }
+
+      nav .grow {
+        flex: 1;
+      }
+
+      main {
+        padding: 24px;
+        overflow: auto;
+      }
+
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .stats {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+      }
+
+      .stat {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 14px 18px;
+        min-width: 140px;
+      }
+
+      .stat b {
+        font-size: 24px;
+        display: block;
+      }
+
+      .stat span {
+        color: var(--mut);
+        font-size: 13px;
+      }
+
+      .tw {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+
+      th {
+        color: var(--mut);
+        font-weight: 600;
+        font-size: 13px;
+      }
+
+      .tag {
+        padding: 2px 8px;
+        border-radius: 99px;
+        font-size: 12px;
+        background: #e3efed;
+      }
+
+      .tag.off {
+        background: #fde4e1;
+        color: var(--bad);
+      }
+
+      .sm {
+        padding: 5px 10px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .sm.del {
+        color: var(--bad);
+      }
+
+      .search {
+        max-width: 260px;
+      }
+
+      .ph {
+        background: var(--card);
+        border: 1px dashed var(--line);
+        border-radius: 10px;
+        padding: 30px;
+        color: var(--mut);
+      }
+
+      @media (max-width: 720px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        nav {
+          flex-direction: row;
+          overflow-x: auto;
+          padding: 10px;
+        }
+
+        nav .brand,
+        nav .grow,
+        nav .grp {
+          display: none;
+        }
+
+        nav .nv {
+          width: auto;
+          white-space: nowrap;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- =====================================================
+         ĐĂNG NHẬP / ĐĂNG KÝ
+         ===================================================== -->
+
+    <section class="auth" id="auth">
+      <div class="box">
+        <h1 id="authTitle">Đăng nhập</h1>
+
+        <p class="sub">Chatbot tư vấn sức khỏe và nhắc lịch uống thuốc</p>
+
+        <!-- Họ tên -->
+        <div id="nameRow" class="hidden">
+          <label for="fn">Họ và tên</label>
+          <input id="fn" autocomplete="name" />
+        </div>
+
+        <!-- Email -->
+        <div id="emRow">
+          <label for="em">Email</label>
+          <input id="em" type="email" autocomplete="email" />
+        </div>
+
+        <!-- Password -->
+        <div id="pwRow">
+          <label for="pw" id="pwLabel"> Mật khẩu </label>
+
+          <input id="pw" type="password" autocomplete="current-password" />
+        </div>
+
+        <!-- Quên mật khẩu -->
+        <div class="sw" style="text-align: right; margin-top: 8px" id="fgRow">
+          <button class="link" id="fgBtn">Quên mật khẩu?</button>
+        </div>
+
+        <!-- Submit -->
+        <button class="btn" id="submitBtn">Đăng nhập</button>
+
+        <!-- Message -->
+        <div class="msg" id="msg" role="alert"></div>
+
+        <!-- Chuyển login/register -->
+        <div class="sw">
+          <span id="swText"> Chưa có tài khoản? </span>
+
+          <button class="link" id="swBtn">Đăng ký</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================
+         TRANG QUẢN TRỊ
+         ===================================================== -->
+
+    <div class="app hidden" id="app">
+      <nav aria-label="Menu quản trị">
+        <div class="brand">HealthBot Admin</div>
+
+        <button class="nv on" data-p="dash">Tổng quan</button>
+
+        <button class="nv" data-p="users">Quản lý người dùng</button>
+
+        <div class="grp">Dữ liệu người dùng</div>
+
+        <button class="nv" data-p="chat">Hội thoại chatbot</button>
+
+        <button class="nv" data-p="meds">Nhắc uống thuốc</button>
+
+        <button class="nv" data-p="sym">Phân tích triệu chứng</button>
+
+        <button class="nv" data-p="visit">Nhắc tái khám</button>
+
+        <div class="grp">Tài khoản của tôi</div>
+
+        <button class="nv" data-p="pw">Đổi mật khẩu</button>
+
+        <div class="grow"></div>
+
+        <button class="nv" id="logout">Đăng xuất</button>
+      </nav>
+
+      <main>
+        <div class="top">
+          <h1 id="pageTitle">Tổng quan</h1>
+
+          <span id="who"></span>
+        </div>
+
+        <!-- DASHBOARD -->
+
+        <div id="p-dash">
+          <div class="stats">
+            <div class="stat">
+              <b id="sTotal">–</b>
+              <span>Tổng tài khoản</span>
+            </div>
+
+            <div class="stat">
+              <b id="sActive">–</b>
+              <span>Đang hoạt động</span>
+            </div>
+
+            <div class="stat">
+              <b id="sAdmin">–</b>
+              <span>Quản trị viên</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- USERS -->
+
+        <div id="p-users" class="hidden">
+          <div class="top">
+            <input
+              class="search"
+              id="search"
+              placeholder="Tìm theo tên hoặc email"
+            />
+          </div>
+
+          <div class="tw">
+            <table>
+              <thead>
+                <tr>
+                  <th>Họ tên</th>
+                  <th>Email</th>
+                  <th>Vai trò</th>
+                  <th>Trạng thái</th>
+                  <th>Đăng nhập gần nhất</th>
+                  <th></th>
+                </tr>
+              </thead>
+
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- CHAT -->
+
+        <div id="p-chat" class="hidden">
+          <div class="tw">
+            <table>
+              <thead></thead>
+
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- MEDICATIONS -->
+
+        <div id="p-meds" class="hidden">
+          <div class="tw">
+            <table>
+              <thead></thead>
+
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SYMPTOMS -->
+
+        <div id="p-sym" class="hidden">
+          <div class="tw">
+            <table>
+              <thead></thead>
+
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- APPOINTMENTS -->
+
+        <div id="p-visit" class="hidden">
+          <div class="tw">
+            <table>
+              <thead></thead>
+
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- CHANGE PASSWORD -->
+
+        <div id="p-pw" class="hidden">
+          <div class="box" style="margin: 0">
+            <label for="op"> Mật khẩu hiện tại </label>
+
+            <input id="op" type="password" autocomplete="current-password" />
+
+            <label for="np"> Mật khẩu mới (ít nhất 6 ký tự) </label>
+
+            <input id="np" type="password" autocomplete="new-password" />
+
+            <label for="np2"> Nhập lại mật khẩu mới </label>
+
+            <input id="np2" type="password" autocomplete="new-password" />
+
+            <button class="btn" id="pwBtn">Đổi mật khẩu</button>
+
+            <div class="msg" id="pwMsg" role="alert"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- =====================================================
+         JAVASCRIPT
+         ===================================================== -->
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      /*
+       * Token hiện tại.
+       *
+       * Lưu cả "token" và "healthbot_token"
+       * vì các trang khác của project có thể
+       * đang sử dụng healthbot_token.
+       */
+
+      let mode = "login";
+
+      let token =
+        localStorage.getItem("healthbot_token") ||
+        localStorage.getItem("token") ||
+        null;
+
+      /* =====================================================
+         API HELPER
+         ===================================================== */
+
+      async function api(path, opt = {}) {
+        const headers = {
+          ...(opt.body instanceof FormData
+            ? {}
+            : {
+                "Content-Type": "application/json",
+              }),
+
+          ...(token
+            ? {
+                Authorization: "Bearer " + token,
+              }
+            : {}),
+
+          ...(opt.headers || {}),
+        };
+
+        const r = await fetch(path, {
+          ...opt,
+          headers: headers,
+        });
+
+        const d = await r.json().catch(() => null);
+
+        if (!r.ok) {
+          if (d === null) {
+            throw new Error(
+              "Lỗi máy chủ (" +
+                r.status +
+                "). Xem thông báo lỗi trong Terminal đang chạy uvicorn.",
+            );
+          }
+
+          if (typeof d.detail === "string") {
+            throw new Error(d.detail);
+          }
+
+          const f = Array.isArray(d.detail) ? d.detail[0] : null;
+
+          throw new Error(
+            f
+              ? 'Trường "' + f.loc.slice(-1)[0] + '" không hợp lệ: ' + f.msg
+              : "Dữ liệu không hợp lệ",
+          );
+        }
+
+        return d;
+      }
+
+      /* =====================================================
+         HIỂN THỊ THÔNG BÁO
+         ===================================================== */
+
+      function say(t, ok = false) {
+        $("msg").textContent = t;
+
+        $("msg").className = "msg " + (ok ? "ok" : "err");
+      }
+
+      /* =====================================================
+         MODE
+         ===================================================== */
+
+      const resetToken = new URLSearchParams(location.search).get("reset");
+
+      const T = {
+        login: ["Đăng nhập", "Đăng nhập"],
+
+        register: ["Đăng ký", "Tạo tài khoản"],
+
+        forgot: ["Quên mật khẩu", "Gửi liên kết đặt lại"],
+
+        reset: ["Đặt mật khẩu mới", "Lưu mật khẩu mới"],
+      };
+
+      function setMode(m) {
+        mode = m;
+
+        $("authTitle").textContent = T[m][0];
+
+        $("submitBtn").textContent = T[m][1];
+
+        $("nameRow").classList.toggle("hidden", m !== "register");
+
+        $("emRow").classList.toggle("hidden", m === "reset");
+
+        $("pwRow").classList.toggle("hidden", m === "forgot");
+
+        $("fgRow").classList.toggle("hidden", m !== "login");
+
+        $("pwLabel").textContent =
+          m === "reset" ? "Mật khẩu mới (ít nhất 6 ký tự)" : "Mật khẩu";
+
+        $("pw").autocomplete =
+          m === "login" ? "current-password" : "new-password";
+
+        const back = m === "forgot" || m === "reset";
+
+        $("swText").textContent = back
+          ? ""
+          : m === "register"
+            ? "Đã có tài khoản?"
+            : "Chưa có tài khoản?";
+
+        $("swBtn").textContent = back
+          ? "Quay lại đăng nhập"
+          : m === "register"
+            ? "Đăng nhập"
+            : "Đăng ký";
+
+        say("");
+      }
+
+      /* =====================================================
+         CHUYỂN LOGIN / REGISTER
+         ===================================================== */
+
+      $("swBtn").onclick = () => {
+        setMode(mode === "login" ? "register" : "login");
+      };
+
+      $("fgBtn").onclick = () => {
+        setMode("forgot");
+      };
+
+      /* =====================================================
+         SUBMIT LOGIN / REGISTER
+         ===================================================== */
+
+      $("submitBtn").onclick = async () => {
+        const post = (url, o) =>
+          api(url, {
+            method: "POST",
+            body: JSON.stringify(o),
+          });
+
+        try {
+          /* =========================
+               REGISTER
+               ========================= */
+
+          if (mode === "register") {
+            const d = await post("/api/register", {
+              full_name: $("fn").value.trim(),
+
+              email: $("em").value.trim(),
+
+              password: $("pw").value,
+            });
+
+            setMode("login");
+
+            say(d.message, true);
+          } else if (mode === "forgot") {
+
+          /* =========================
+               FORGOT PASSWORD
+               ========================= */
+            const d = await post("/api/forgot-password", {
+              email: $("em").value.trim(),
+            });
+
+            say(d.message, true);
+          } else if (mode === "reset") {
+
+          /* =========================
+               RESET PASSWORD
+               ========================= */
+            const d = await post("/api/reset-password", {
+              token: resetToken,
+
+              new_password: $("pw").value,
+            });
+
+            history.replaceState(null, "", "/");
+
+            setMode("login");
+
+            say(d.message, true);
+          } else {
+
+          /* =========================
+               LOGIN
+               ========================= */
+            const d = await post("/api/login", {
+              email: $("em").value.trim(),
+
+              password: $("pw").value,
+            });
+
+            afterLogin(d);
+          }
+        } catch (e) {
+          say(e.message);
+        }
+      };
+
+      /* =====================================================
+         AFTER LOGIN
+         ===================================================== */
+
+      function afterLogin(d) {
+        /*
+         * BACKEND HIỆN TẠI TRẢ:
+         *
+         * {
+         *   access_token: "...",
+         *   token_type: "bearer",
+         *   user: {...}
+         * }
+         */
+
+        token = d.access_token;
+
+        if (!token) {
+          say("Đăng nhập thành công nhưng không nhận được token.");
+
+          return;
+        }
+
+        /*
+         * Lưu token.
+         *
+         * healthbot_token được dùng
+         * cho trang thuốc.
+         */
+
+        localStorage.setItem("token", token);
+
+        localStorage.setItem("healthbot_token", token);
+
+        /* =========================
+           USER THƯỜNG
+           ========================= */
+
+        if (d.user.Role !== "admin") {
+          localStorage.setItem("healthbot_user", JSON.stringify(d.user));
+
+          location.href = "/home";
+
+          return;
+        }
+
+        /* =========================
+           ADMIN
+           ========================= */
+
+        $("who").textContent = d.user.FullName;
+
+        showApp();
+      }
+
+      /* =====================================================
+         HIỂN THỊ ADMIN
+         ===================================================== */
+
+      function showApp() {
+        $("auth").classList.add("hidden");
+
+        $("app").classList.remove("hidden");
+
+        loadStats();
+      }
+
+      /* =====================================================
+         LOGOUT
+         ===================================================== */
+
+      $("logout").onclick = () => {
+        localStorage.removeItem("token");
+
+        localStorage.removeItem("healthbot_token");
+
+        localStorage.removeItem("healthbot_user");
+
+        token = null;
+
+        location.reload();
+      };
+
+      /* =====================================================
+         MENU ADMIN
+         ===================================================== */
+
+      const titles = {
+        dash: "Tổng quan",
+
+        users: "Quản lý người dùng",
+
+        chat: "Hội thoại chatbot",
+
+        meds: "Nhắc uống thuốc",
+
+        sym: "Phân tích triệu chứng",
+
+        visit: "Nhắc tái khám",
+
+        pw: "Đổi mật khẩu",
+      };
+
+      document.querySelectorAll("nav .nv[data-p]").forEach((a) => {
+        a.onclick = () => {
+          document
+            .querySelectorAll("nav .nv")
+            .forEach((x) => x.classList.remove("on"));
+
+          a.classList.add("on");
+
+          Object.keys(titles).forEach((k) => {
+            $("p-" + k).classList.toggle("hidden", k !== a.dataset.p);
+          });
+
+          $("pageTitle").textContent = titles[a.dataset.p];
+
+          const ep = {
+            chat: "conversations",
+
+            meds: "medications",
+
+            sym: "symptom-checks",
+
+            visit: "appointments",
+          }[a.dataset.p];
+
+          if (ep) {
+            loadTable(a.dataset.p, ep);
+          }
+
+          if (a.dataset.p === "users") {
+            loadUsers();
+          }
+
+          if (a.dataset.p === "dash") {
+            loadStats();
+          }
+        };
+      });
+
+      /* =====================================================
+         ADMIN STATS
+         ===================================================== */
+
+      async function loadStats() {
+        try {
+          const s = await api("/api/admin/stats");
+
+          $("sTotal").textContent = s.total;
+
+          $("sActive").textContent = s.active;
+
+          $("sAdmin").textContent = s.admins;
+        } catch (e) {
+          /*
+           * Nếu token hết hạn,
+           * xóa token và quay lại login.
+           */
+
+          localStorage.removeItem("token");
+
+          localStorage.removeItem("healthbot_token");
+
+          localStorage.removeItem("healthbot_user");
+
+          token = null;
+
+          location.reload();
+        }
+      }
+
+      /* =====================================================
+         FORMAT DATE
+         ===================================================== */
+
+      const fmt = (d) =>
+        d ? new Date(d).toLocaleString("vi-VN") : "Chưa đăng nhập";
+
+      /* =====================================================
+         LOAD USERS
+         ===================================================== */
+
+      async function loadUsers() {
+        const list = await api(
+          "/api/admin/users?search=" + encodeURIComponent($("search").value),
+        );
+
+        $("rows").innerHTML =
+          list
+            .map(
+              (u) => `
+
+                <tr>
+
+                  <td>
+                    ${esc(u.FullName)}
+                  </td>
+
+                  <td>
+                    ${esc(u.Email)}
+                  </td>
+
+                  <td>
+
+                    <select
+                      data-id="${u.UserId}"
+                      class="role"
+                    >
+
+                      <option
+                        value="user"
+                        ${u.Role === "user" ? "selected" : ""}
+                      >
+                        Người dùng
+                      </option>
+
+                      <option
+                        value="admin"
+                        ${u.Role === "admin" ? "selected" : ""}
+                      >
+                        Quản trị viên
+                      </option>
+
+                    </select>
+
+                  </td>
+
+                  <td>
+
+                    <span
+                      class="tag ${u.IsActive ? "" : "off"}"
+                    >
+
+                      ${u.IsActive ? "Hoạt động" : "Đã khóa"}
+
+                    </span>
+
+                  </td>
+
+                  <td>
+                    ${fmt(u.LastLoginAt)}
+                  </td>
+
+                  <td>
+
+                    <button
+                      class="sm tog"
+                      data-id="${u.UserId}"
+                      data-a="${u.IsActive ? 0 : 1}"
+                    >
+                      ${u.IsActive ? "Khóa" : "Mở khóa"}
+                    </button>
+
+                    <button
+                      class="sm del"
+                      data-id="${u.UserId}"
+                    >
+                      Xóa
+                    </button>
+
+                  </td>
+
+                </tr>
+
+              `,
+            )
+            .join("") ||
+          `
+            <tr>
+              <td colspan="6">
+                Không tìm thấy người dùng nào.
+              </td>
+            </tr>
+          `;
+      }
+
+      /* =====================================================
+         TABLE HEADERS
+         ===================================================== */
+
+      const heads = {
+        ConvId: "Mã",
+
+        FullName: "Người dùng",
+
+        Sender: "Người gửi",
+
+        Message: "Nội dung",
+
+        CreatedAt: "Thời gian",
+
+        MedId: "Mã",
+
+        DrugName: "Tên thuốc",
+
+        Dosage: "Liều dùng",
+
+        TimesPerDay: "Lần/ngày",
+
+        StartDate: "Bắt đầu",
+
+        EndDate: "Kết thúc",
+
+        IsActive: "Đang dùng",
+
+        ApptId: "Mã",
+
+        DoctorName: "Bác sĩ",
+
+        Location: "Địa điểm",
+
+        ApptTime: "Thời gian khám",
+
+        Status: "Trạng thái",
+
+        Channel: "Kênh nhắc",
+
+        CheckId: "Mã",
+
+        SymptomText: "Triệu chứng",
+
+        Severity: "Mức độ (1-3)",
+
+        DaysSince: "Số ngày",
+      };
+
+      /* =====================================================
+         LOAD TABLE
+         ===================================================== */
+
+      async function loadTable(page, ep) {
+        const box = $("p-" + page);
+
+        const data = await api("/api/admin/" + ep);
+
+        if (!data.length) {
+          box.innerHTML = '<div class="ph">Chưa có dữ liệu.</div>';
+
+          return;
+        }
+
+        const cols = Object.keys(data[0]);
+
+        box.innerHTML =
+          '<div class="tw">' +
+          "<table>" +
+          "<thead>" +
+          "<tr>" +
+          cols.map((c) => `<th>${heads[c] || c}</th>`).join("") +
+          "</tr>" +
+          "</thead>" +
+          "<tbody>" +
+          data
+            .map(
+              (r) =>
+                "<tr>" +
+                cols
+                  .map(
+                    (c) =>
+                      `<td style="white-space:normal;max-width:360px">${esc(
+                        r[c] ?? "",
+                      )}</td>`,
+                  )
+                  .join("") +
+                "</tr>",
+            )
+            .join("") +
+          "</tbody>" +
+          "</table>" +
+          "</div>";
+      }
+
+      /* =====================================================
+         ESCAPE HTML
+         ===================================================== */
+
+      const esc = (s) =>
+        String(s).replace(
+          /[&<>"']/g,
+
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+
+      /* =====================================================
+         SEARCH USERS
+         ===================================================== */
+
+      let t;
+
+      $("search").oninput = () => {
+        clearTimeout(t);
+
+        t = setTimeout(loadUsers, 300);
+      };
+
+      /* =====================================================
+         USER BUTTONS
+         ===================================================== */
+
+      $("rows").onclick = async (e) => {
+        const id = e.target.dataset.id;
+
+        if (!id) {
+          return;
+        }
+
+        try {
+          if (e.target.classList.contains("tog")) {
+            await api("/api/admin/users/" + id, {
+              method: "PATCH",
+
+              body: JSON.stringify({
+                is_active: e.target.dataset.a === "1",
+              }),
+            });
+          } else if (e.target.classList.contains("del")) {
+            if (!confirm("Xóa tài khoản này? Hành động không thể hoàn tác.")) {
+              return;
+            }
+
+            await api("/api/admin/users/" + id, {
+              method: "DELETE",
+            });
+          } else {
+            return;
+          }
+
+          loadUsers();
+        } catch (er) {
+          alert(er.message);
+        }
+      };
+
+      /* =====================================================
+         CHANGE ROLE
+         ===================================================== */
+
+      $("rows").onchange = async (e) => {
+        if (!e.target.classList.contains("role")) {
+          return;
+        }
+
+        try {
+          await api("/api/admin/users/" + e.target.dataset.id, {
+            method: "PATCH",
+
+            body: JSON.stringify({
+              role: e.target.value,
+            }),
+          });
+        } catch (er) {
+          alert(er.message);
+
+          loadUsers();
+        }
+      };
+
+      /* =====================================================
+         KIỂM TRA TOKEN CŨ
+         ===================================================== */
+
+      if (token) {
+        api("/api/me")
+          .then((u) => {
+            if (u.Role === "admin") {
+              $("who").textContent = u.FullName;
+
+              showApp();
+            }
+          })
+
+          .catch(() => {
+            /*
+             * Token cũ không hợp lệ.
+             */
+
+            localStorage.removeItem("token");
+
+            localStorage.removeItem("healthbot_token");
+
+            localStorage.removeItem("healthbot_user");
+
+            token = null;
+          });
+      }
+
+      /* =====================================================
+         RESET MODE
+         ===================================================== */
+
+      if (resetToken) {
+        setMode("reset");
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+pyodbc
+python-dotenv
+PyJWT
+bcrypt
+pydantic[email]
+requests
+openpyxl

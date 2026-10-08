@@ -1,0 +1,18 @@
+[
+    {
+        "id": 101,
+        "patient_name": "Nguyễn Văn An",
+        "phone": "0987654321",
+        "doctor": "BS. Nguyễn Văn A",
+        "location": "Phòng 302 - Khoa Bệnh Mạn Tính",
+        "date": "2026-10-01",
+        "time": "08:30",
+        "reason": "Tái khám định kỳ tăng huyết áp",
+        "note": "Nhớ nhịn ăn sáng để xét nghiệm máu",
+        "remind_before": "1 ngày",
+        "notify_channel": "App / Web Notification, Email",
+        "status": "Sắp tới",
+        "confirmed": false,
+        "remind_count": 0
+    }
+]

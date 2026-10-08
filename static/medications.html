@@ -1,0 +1,1175 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lịch uống thuốc</title>
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 30px;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #f4f6f9;
+        color: #222;
+      }
+
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        text-align: center;
+        margin-top: 0;
+        margin-bottom: 25px;
+      }
+
+      .add-button {
+        display: inline-block;
+        padding: 13px 20px;
+        margin-bottom: 25px;
+        background: #28a745;
+        color: white;
+        text-decoration: none;
+        border-radius: 10px;
+        font-size: 17px;
+        font-weight: bold;
+        transition: 0.2s;
+      }
+
+      .add-button:hover {
+        background: #218838;
+        transform: translateY(-1px);
+      }
+
+      .medicine-card {
+        background: white;
+        padding: 22px;
+        margin-bottom: 18px;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+      }
+
+      .medicine-name {
+        font-size: 23px;
+        font-weight: bold;
+        margin-bottom: 12px;
+        color: #222;
+      }
+
+      .medicine-info {
+        font-size: 17px;
+        margin-top: 8px;
+        line-height: 1.5;
+      }
+
+      .empty {
+        background: white;
+        padding: 45px 20px;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+      }
+
+      .loading {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        text-align: center;
+      }
+
+      .error {
+        background: #fff1f1;
+        color: #d50000;
+        border: 1px solid #ffb3b3;
+        padding: 18px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        font-size: 16px;
+      }
+
+      /* ==============================
+           ALARM
+        ============================== */
+
+      #alarmBox {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.75);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        padding: 20px;
+      }
+
+      .alarm-content {
+        width: 100%;
+        max-width: 750px;
+        max-height: 95vh;
+        overflow-y: auto;
+        background: white;
+        padding: 30px;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+        text-align: center;
+      }
+
+      .alarm-title {
+        color: #d50000;
+        font-size: 30px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        animation: blink 0.8s infinite;
+      }
+
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+
+        50% {
+          opacity: 0.25;
+        }
+      }
+
+      .alarm-medicine {
+        font-size: 25px;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+
+      .alarm-time {
+        font-size: 20px;
+        margin-bottom: 15px;
+        color: #444;
+      }
+
+      /* ==============================
+           CAMERA
+        ============================== */
+
+      .camera-box {
+        width: 100%;
+        max-width: 600px;
+        margin: 20px auto;
+        background: #111;
+        border-radius: 15px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      #camera {
+        display: block;
+        width: 100%;
+        max-height: 450px;
+        object-fit: cover;
+        background: #111;
+      }
+
+      #photo {
+        display: none;
+        width: 100%;
+        max-width: 600px;
+        margin: 15px auto;
+        border-radius: 15px;
+        background: #111;
+      }
+
+      .camera-button {
+        border: none;
+        background: #ff9800;
+        color: white;
+        padding: 14px 22px;
+        border-radius: 10px;
+        font-size: 17px;
+        font-weight: bold;
+        cursor: pointer;
+        margin: 8px;
+      }
+
+      .camera-button:hover {
+        background: #e68900;
+      }
+
+      .camera-button.blue {
+        background: #007bff;
+      }
+
+      .camera-button.blue:hover {
+        background: #0069d9;
+      }
+
+      .camera-button.red {
+        background: #dc3545;
+      }
+
+      .camera-button.red:hover {
+        background: #c82333;
+      }
+
+      .confirm-button {
+        border: none;
+        background: #28a745;
+        color: white;
+        padding: 14px 22px;
+        border-radius: 10px;
+        font-size: 17px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 15px;
+        width: 100%;
+      }
+
+      .confirm-button:disabled {
+        background: #aaa;
+        cursor: not-allowed;
+      }
+
+      .confirm-button:not(:disabled):hover {
+        background: #218838;
+      }
+
+      #photoStatus {
+        margin-top: 10px;
+        font-size: 16px;
+        font-weight: bold;
+      }
+
+      .warning {
+        margin-top: 15px;
+        padding: 12px;
+        background: #fff3cd;
+        border-radius: 10px;
+        color: #856404;
+        font-size: 15px;
+      }
+
+      .success-message {
+        color: #168a35;
+        font-weight: bold;
+        margin-top: 15px;
+      }
+
+      .alarm-error {
+        color: #d50000;
+        font-weight: bold;
+        margin-top: 15px;
+      }
+
+      .camera-status {
+        margin-top: 10px;
+        font-size: 15px;
+        color: #555;
+      }
+
+      /* ==============================
+           RESPONSIVE
+        ============================== */
+
+      @media (max-width: 600px) {
+        body {
+          padding: 15px;
+        }
+
+        .alarm-content {
+          padding: 20px;
+        }
+
+        .alarm-title {
+          font-size: 23px;
+        }
+
+        .alarm-medicine {
+          font-size: 21px;
+        }
+
+        .alarm-time {
+          font-size: 18px;
+        }
+
+        .medicine-name {
+          font-size: 20px;
+        }
+
+        .medicine-info {
+          font-size: 15px;
+        }
+
+        .camera-button {
+          width: calc(100% - 16px);
+          margin: 6px 8px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>💊 LỊCH UỐNG THUỐC</h1>
+
+      <a href="/add" class="add-button"> ➕ Thêm lịch uống thuốc </a>
+
+      <div id="errorBox"></div>
+
+      <div id="medicineList" class="loading">Đang tải lịch uống thuốc...</div>
+    </div>
+
+    <!-- =====================================================
+     HỘP CẢNH BÁO
+===================================================== -->
+
+    <div id="alarmBox">
+      <div class="alarm-content">
+        <div class="alarm-title">🚨 ĐẾN GIỜ UỐNG THUỐC 🚨</div>
+
+        <div id="alarmMedicine" class="alarm-medicine"></div>
+
+        <div id="alarmTime" class="alarm-time"></div>
+
+        <p>
+          💊 Hãy uống thuốc và
+          <b>chụp ảnh xác minh.</b>
+        </p>
+
+        <!-- CAMERA -->
+
+        <div class="camera-box">
+          <video id="camera" autoplay playsinline muted></video>
+        </div>
+
+        <!-- NÚT CAMERA -->
+
+        <div>
+          <button
+            id="takePhotoButton"
+            class="camera-button"
+            onclick="takePhoto()"
+          >
+            📸 CHỤP ẢNH XÁC MINH
+          </button>
+
+          <button
+            id="openCameraButton"
+            class="camera-button blue"
+            onclick="startCamera()"
+            style="display: none"
+          >
+            📷 MỞ CAMERA
+          </button>
+
+          <button
+            id="stopCameraButton"
+            class="camera-button red"
+            onclick="stopCamera()"
+          >
+            ❌ TẮT CAMERA
+          </button>
+        </div>
+
+        <!-- ẢNH ĐÃ CHỤP -->
+
+        <canvas id="photo"> </canvas>
+
+        <div id="photoStatus">❌ Chưa chụp ảnh xác minh</div>
+
+        <div id="cameraStatus" class="camera-status"></div>
+
+        <!-- CHỤP LẠI -->
+
+        <button
+          id="retakeButton"
+          class="camera-button blue"
+          onclick="retakePhoto()"
+          style="display: none"
+        >
+          🔄 CHỤP LẠI
+        </button>
+
+        <div class="warning">
+          ⚠️ Phải chụp ảnh xác minh mới được xác nhận uống thuốc.
+        </div>
+
+        <!-- XÁC NHẬN -->
+
+        <button
+          id="confirmButton"
+          class="confirm-button"
+          onclick="confirmMedicine()"
+          disabled
+        >
+          🔒 Chưa xác minh ảnh
+        </button>
+
+        <div id="alarmMessage" style="display: none"></div>
+      </div>
+    </div>
+
+    <script>
+      /* =====================================================
+   BIẾN
+===================================================== */
+
+      let audioContext = null;
+      let alarmInterval = null;
+      let alarmRunning = false;
+
+      let currentMedicine = null;
+
+      let cameraStream = null;
+
+      let photoTaken = false;
+
+      let checkingReminder = false;
+
+      let completedReminders = {};
+
+      /* =====================================================
+   TOKEN
+===================================================== */
+
+      function getToken() {
+        return (
+          localStorage.getItem("healthbot_token") ||
+          localStorage.getItem("token") ||
+          null
+        );
+      }
+
+      /* =====================================================
+   API
+===================================================== */
+
+      async function api(url, options = {}) {
+        const token = getToken();
+
+        const headers = {
+          ...(options.headers || {}),
+        };
+
+        if (options.body && !(options.body instanceof FormData)) {
+          headers["Content-Type"] = "application/json";
+        }
+
+        if (token) {
+          headers["Authorization"] = "Bearer " + token;
+        }
+
+        const response = await fetch(url, {
+          ...options,
+          headers,
+        });
+
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("healthbot_token");
+
+          window.location.href = "/";
+
+          throw new Error("Phiên đăng nhập đã hết hạn");
+        }
+
+        let data = null;
+
+        try {
+          data = await response.json();
+        } catch (e) {
+          data = null;
+        }
+
+        if (!response.ok) {
+          const message = data?.detail || data?.message || "Có lỗi xảy ra";
+
+          throw new Error(message);
+        }
+
+        return data;
+      }
+
+      /* =====================================================
+   ESCAPE HTML
+===================================================== */
+
+      function escapeHtml(value) {
+        if (value === null || value === undefined) {
+          return "";
+        }
+
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      /* =====================================================
+   FORMAT NGÀY
+===================================================== */
+
+      function formatDate(value) {
+        if (!value) {
+          return "";
+        }
+
+        const parts = String(value).split("-");
+
+        if (parts.length === 3) {
+          return parts[2] + "/" + parts[1] + "/" + parts[0];
+        }
+
+        return value;
+      }
+
+      /* =====================================================
+   HIỂN THỊ DANH SÁCH THUỐC
+===================================================== */
+
+      async function loadMedicines() {
+        const container = document.getElementById("medicineList");
+
+        const errorBox = document.getElementById("errorBox");
+
+        try {
+          errorBox.innerHTML = "";
+
+          const data = await api("/api/medications/mine");
+
+          const medicines = Array.isArray(data) ? data : data?.items || [];
+
+          if (medicines.length === 0) {
+            container.className = "empty";
+
+            container.innerHTML = `
+                <h2>
+                    Chưa có lịch uống thuốc
+                </h2>
+
+                <p>
+                    Nhấn "Thêm lịch uống thuốc"
+                    để tạo lịch mới.
+                </p>
+            `;
+
+            return;
+          }
+
+          container.className = "";
+
+          container.innerHTML = medicines
+            .map((medicine) => {
+              const times = Array.isArray(medicine.times)
+                ? medicine.times.join(", ")
+                : medicine.time || "";
+
+              return `
+
+                    <div class="medicine-card">
+
+                        <div class="medicine-name">
+
+                            💊
+
+                            ${escapeHtml(
+                              medicine.name || medicine.drug_name || "Thuốc",
+                            )}
+
+                        </div>
+
+
+                        ${
+                          medicine.dosage
+                            ? `
+
+                                    <div class="medicine-info">
+
+                                        💊 Liều dùng:
+
+                                        <b>
+                                            ${escapeHtml(medicine.dosage)}
+                                        </b>
+
+                                    </div>
+
+                                `
+                            : ""
+                        }
+
+
+                        <div class="medicine-info">
+
+                            📅 Từ:
+
+                            <b>
+                                ${formatDate(medicine.start_date)}
+                            </b>
+
+                            đến
+
+                            <b>
+                                ${formatDate(medicine.end_date)}
+                            </b>
+
+                        </div>
+
+
+                        <div class="medicine-info">
+
+                            ⏰ Thời gian:
+
+                            <b>
+                                ${escapeHtml(times)}
+                            </b>
+
+                        </div>
+
+
+                        <div class="medicine-info">
+
+                            🔄 Tần suất:
+
+                            <b>
+
+                                ${escapeHtml(
+                                  medicine.frequency ||
+                                    (medicine.times_per_day || 1) + " lần/ngày",
+                                )}
+
+                            </b>
+
+                        </div>
+
+
+                        ${
+                          medicine.note
+                            ? `
+
+                                    <div class="medicine-info">
+
+                                        📝 Ghi chú:
+
+                                        <b>
+                                            ${escapeHtml(medicine.note)}
+                                        </b>
+
+                                    </div>
+
+                                `
+                            : ""
+                        }
+
+                    </div>
+
+                `;
+            })
+            .join("");
+        } catch (error) {
+          console.error("Lỗi tải danh sách thuốc:", error);
+
+          container.className = "empty";
+
+          container.innerHTML = `
+
+            <h2>
+                Không thể tải lịch uống thuốc
+            </h2>
+
+        `;
+
+          errorBox.innerHTML = `
+
+            <div class="error">
+
+                ❌
+
+                ${escapeHtml(error.message)}
+
+            </div>
+
+        `;
+        }
+      }
+
+      /* =====================================================
+   ÂM THANH
+===================================================== */
+
+      function startAlarmSound() {
+        stopAlarmSound();
+
+        try {
+          audioContext = new (
+            window.AudioContext || window.webkitAudioContext
+          )();
+
+          alarmInterval = setInterval(() => {
+            if (!audioContext) {
+              return;
+            }
+
+            const oscillator = audioContext.createOscillator();
+
+            const gain = audioContext.createGain();
+
+            oscillator.type = "sine";
+
+            oscillator.frequency.value = 880;
+
+            gain.gain.value = 0.25;
+
+            oscillator.connect(gain);
+
+            gain.connect(audioContext.destination);
+
+            oscillator.start();
+
+            oscillator.stop(audioContext.currentTime + 0.5);
+          }, 1000);
+        } catch (error) {
+          console.warn("Không thể phát âm thanh:", error);
+        }
+      }
+
+      /* =====================================================
+   DỪNG ÂM THANH
+===================================================== */
+
+      function stopAlarmSound() {
+        if (alarmInterval) {
+          clearInterval(alarmInterval);
+
+          alarmInterval = null;
+        }
+
+        if (audioContext) {
+          try {
+            audioContext.close();
+          } catch (e) {}
+
+          audioContext = null;
+        }
+      }
+
+      /* =====================================================
+   MỞ CAMERA
+===================================================== */
+
+      async function startCamera() {
+        try {
+          /* Nếu camera đã mở thì không mở lại */
+
+          if (cameraStream) {
+            return;
+          }
+
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error("Trình duyệt không hỗ trợ camera.");
+          }
+
+          const camera = document.getElementById("camera");
+
+          const cameraStatus = document.getElementById("cameraStatus");
+
+          cameraStatus.textContent = "⏳ Đang mở camera...";
+
+          cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: "user",
+
+              width: {
+                ideal: 1280,
+              },
+
+              height: {
+                ideal: 720,
+              },
+            },
+
+            audio: false,
+          });
+
+          camera.srcObject = cameraStream;
+
+          await camera.play();
+
+          cameraStatus.textContent = "🟢 Camera đang hoạt động";
+
+          document.getElementById("takePhotoButton").style.display =
+            "inline-block";
+
+          document.getElementById("stopCameraButton").style.display =
+            "inline-block";
+
+          document.getElementById("openCameraButton").style.display = "none";
+        } catch (error) {
+          console.error("Không thể mở camera:", error);
+
+          cameraStream = null;
+
+          document.getElementById("cameraStatus").textContent =
+            "❌ Không thể mở camera. Hãy cấp quyền camera cho trình duyệt.";
+        }
+      }
+
+      /* =====================================================
+   TẮT CAMERA
+===================================================== */
+
+      function stopCamera() {
+        if (cameraStream) {
+          cameraStream.getTracks().forEach((track) => {
+            track.stop();
+          });
+
+          cameraStream = null;
+        }
+
+        const camera = document.getElementById("camera");
+
+        if (camera) {
+          camera.pause();
+
+          camera.srcObject = null;
+        }
+
+        const takeButton = document.getElementById("takePhotoButton");
+
+        const openButton = document.getElementById("openCameraButton");
+
+        const stopButton = document.getElementById("stopCameraButton");
+
+        if (takeButton) {
+          takeButton.style.display = "none";
+        }
+
+        if (stopButton) {
+          stopButton.style.display = "none";
+        }
+
+        if (openButton) {
+          openButton.style.display = "inline-block";
+        }
+
+        const cameraStatus = document.getElementById("cameraStatus");
+
+        if (cameraStatus) {
+          cameraStatus.textContent = "⚫ Camera đã tắt";
+        }
+      }
+
+      /* =====================================================
+   CHỤP ẢNH
+===================================================== */
+
+      function takePhoto() {
+        const camera = document.getElementById("camera");
+
+        const canvas = document.getElementById("photo");
+
+        const photoStatus = document.getElementById("photoStatus");
+
+        if (!cameraStream) {
+          photoStatus.textContent = "❌ Camera chưa được mở.";
+
+          return;
+        }
+
+        if (!camera.videoWidth || !camera.videoHeight) {
+          photoStatus.textContent =
+            "❌ Camera chưa sẵn sàng. Vui lòng chờ một chút.";
+
+          return;
+        }
+
+        canvas.width = camera.videoWidth;
+
+        canvas.height = camera.videoHeight;
+
+        const context = canvas.getContext("2d");
+
+        context.drawImage(camera, 0, 0, canvas.width, canvas.height);
+
+        canvas.style.display = "block";
+
+        photoTaken = true;
+
+        photoStatus.textContent = "✅ Đã chụp ảnh xác minh";
+
+        const confirmButton = document.getElementById("confirmButton");
+
+        confirmButton.disabled = false;
+
+        confirmButton.textContent = "✅ XÁC NHẬN ĐÃ UỐNG THUỐC";
+
+        /* Tắt camera sau khi chụp */
+
+        stopCamera();
+
+        /* Hiện nút chụp lại */
+
+        document.getElementById("retakeButton").style.display = "inline-block";
+      }
+
+      /* =====================================================
+   CHỤP LẠI
+===================================================== */
+
+      async function retakePhoto() {
+        photoTaken = false;
+
+        const canvas = document.getElementById("photo");
+
+        const photoStatus = document.getElementById("photoStatus");
+
+        const confirmButton = document.getElementById("confirmButton");
+
+        canvas.style.display = "none";
+
+        photoStatus.textContent = "❌ Chưa chụp ảnh xác minh";
+
+        confirmButton.disabled = true;
+
+        confirmButton.textContent = "🔒 Chưa xác minh ảnh";
+
+        document.getElementById("retakeButton").style.display = "none";
+
+        await startCamera();
+      }
+
+      /* =====================================================
+   HIỂN THỊ ALARM
+===================================================== */
+
+      async function showAlarm(medicine) {
+        if (!medicine) {
+          return;
+        }
+
+        if (
+          alarmRunning &&
+          currentMedicine &&
+          currentMedicine.log_id === medicine.log_id
+        ) {
+          return;
+        }
+
+        currentMedicine = medicine;
+
+        alarmRunning = true;
+
+        photoTaken = false;
+
+        const alarmBox = document.getElementById("alarmBox");
+
+        const alarmMedicine = document.getElementById("alarmMedicine");
+
+        const alarmTime = document.getElementById("alarmTime");
+
+        const photo = document.getElementById("photo");
+
+        const photoStatus = document.getElementById("photoStatus");
+
+        const confirmButton = document.getElementById("confirmButton");
+
+        const retakeButton = document.getElementById("retakeButton");
+
+        const alarmMessage = document.getElementById("alarmMessage");
+
+        alarmMedicine.textContent =
+          "💊 " + (medicine.name || medicine.drug_name || "Thuốc");
+
+        alarmTime.textContent = "⏰ Giờ uống: " + (medicine.take_time || "");
+
+        photo.style.display = "none";
+
+        photoStatus.textContent = "❌ Chưa chụp ảnh xác minh";
+
+        confirmButton.disabled = true;
+
+        confirmButton.textContent = "🔒 Chưa xác minh ảnh";
+
+        retakeButton.style.display = "none";
+
+        alarmMessage.style.display = "none";
+
+        alarmBox.style.display = "flex";
+
+        startAlarmSound();
+
+        await startCamera();
+      }
+
+      /* =====================================================
+   XÁC NHẬN UỐNG THUỐC
+===================================================== */
+
+      async function confirmMedicine() {
+        if (!currentMedicine) {
+          return;
+        }
+
+        if (!photoTaken) {
+          alert("Vui lòng chụp ảnh xác minh trước.");
+
+          return;
+        }
+
+        const canvas = document.getElementById("photo");
+
+        const confirmButton = document.getElementById("confirmButton");
+
+        const alarmMessage = document.getElementById("alarmMessage");
+
+        confirmButton.disabled = true;
+
+        confirmButton.textContent = "⏳ Đang xác minh...";
+
+        try {
+          const blob = await new Promise((resolve) => {
+            canvas.toBlob(resolve, "image/jpeg", 0.9);
+          });
+
+          if (!blob) {
+            throw new Error("Không thể tạo ảnh");
+          }
+
+          const formData = new FormData();
+
+          formData.append("file", blob, "medicine_proof.jpg");
+
+          const result = await api(
+            "/api/medications/logs/" + currentMedicine.log_id + "/verify",
+            {
+              method: "POST",
+              body: formData,
+            },
+          );
+
+          if (!result || result.success !== true) {
+            throw new Error(result?.message || "Xác minh thất bại");
+          }
+
+          completedReminders[currentMedicine.log_id] = true;
+
+          alarmMessage.style.display = "block";
+
+          alarmMessage.className = "success-message";
+
+          alarmMessage.textContent =
+            "✅ Đã xác minh ảnh và xác nhận uống thuốc!";
+
+          stopAlarmSound();
+
+          stopCamera();
+
+          setTimeout(() => {
+            closeAlarm();
+          }, 1000);
+        } catch (error) {
+          console.error("Lỗi xác minh:", error);
+
+          confirmButton.disabled = false;
+
+          confirmButton.textContent = "✅ XÁC NHẬN ĐÃ UỐNG THUỐC";
+
+          alarmMessage.style.display = "block";
+
+          alarmMessage.className = "alarm-error";
+
+          alarmMessage.textContent = "❌ " + error.message;
+        }
+      }
+
+      /* =====================================================
+   ĐÓNG ALARM
+===================================================== */
+
+      function closeAlarm() {
+        stopAlarmSound();
+
+        stopCamera();
+
+        const alarmBox = document.getElementById("alarmBox");
+
+        alarmBox.style.display = "none";
+
+        alarmRunning = false;
+
+        currentMedicine = null;
+
+        photoTaken = false;
+      }
+
+      /* =====================================================
+   KIỂM TRA THUỐC ĐẾN GIỜ
+===================================================== */
+
+      async function checkReminder() {
+        if (checkingReminder) {
+          return;
+        }
+
+        checkingReminder = true;
+
+        try {
+          const data = await api("/api/medications/due");
+
+          const items = Array.isArray(data) ? data : data?.items || [];
+
+          if (!items.length) {
+            return;
+          }
+
+          const medicine = items.find(
+            (item) => !completedReminders[item.log_id],
+          );
+
+          if (!medicine) {
+            return;
+          }
+
+          if (
+            alarmRunning &&
+            currentMedicine &&
+            currentMedicine.log_id === medicine.log_id
+          ) {
+            return;
+          }
+
+          await showAlarm(medicine);
+        } catch (error) {
+          console.error("Lỗi kiểm tra reminder:", error);
+        } finally {
+          checkingReminder = false;
+        }
+      }
+
+      /* =====================================================
+   KHỞI ĐỘNG
+===================================================== */
+
+      async function init() {
+        await loadMedicines();
+
+        await checkReminder();
+
+        setInterval(checkReminder, 10000);
+      }
+
+      /* =====================================================
+   CHẠY
+===================================================== */
+
+      document.addEventListener("DOMContentLoaded", init);
+    </script>
+  </body>
+</html>

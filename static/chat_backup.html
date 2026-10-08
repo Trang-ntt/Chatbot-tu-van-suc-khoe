@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Chatbot Y tế</title>
+    <link rel="stylesheet" href="/static/css/symptoms.css" />
+  </head>
+  <body>
+    <div class="app">
+      <div class="chat">
+        <div class="sidebar">
+          <div class="brand">Chatbot Y tế</div>
+          <div class="hint">Tích hợp với Rasa nếu Rasa đang chạy.</div>
+          <a href="/home">Trang chủ</a
+          ><a href="/symptoms">Phân tích triệu chứng</a>
+        </div>
+        <div class="panel">
+          <div class="header">
+            <div class="title">Chatbot Y tế</div>
+            <div class="subtitle">Hỏi đáp sức khỏe</div>
+          </div>
+          <div id="messages" class="messages"></div>
+          <div class="composer">
+            <div class="input">
+              <textarea
+                id="input"
+                rows="1"
+                placeholder="Gõ câu hỏi..."
+              ></textarea>
+            </div>
+            <button id="send" class="send-btn">Gửi</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const token = localStorage.getItem("healthbot_token");
+      if (!token) {
+        location.href = "/";
+      }
+      const m = document.getElementById("messages"),
+        i = document.getElementById("input"),
+        b = document.getElementById("send");
+      function add(t, w) {
+        const e = document.createElement("div");
+        e.className = "msg " + (w === "user" ? "user" : "bot");
+        e.textContent = t;
+        m.appendChild(e);
+        m.scrollTop = m.scrollHeight;
+      }
+      async function send() {
+        const x = i.value.trim();
+        if (!x) return;
+        add(x, "user");
+        i.value = "";
+        try {
+          const r = await fetch("/api/chat", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({ message: x }),
+          });
+          const d = await r.json();
+          if (!r.ok) throw Error(d.detail || "Lỗi");
+          add(d.reply || "Không có phản hồi");
+        } catch (e) {
+          add(e.message, "bot");
+        }
+      }
+      b.onclick = send;
+      i.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          send();
+        }
+      });
+      add("Xin chào! Bạn muốn hỏi gì về sức khỏe?", "bot");
+    </script>
+  </body>
+</html>

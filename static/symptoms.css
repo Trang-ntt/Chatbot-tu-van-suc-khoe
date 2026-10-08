@@ -1,0 +1,144 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: #f3f7fb;
+  color: #333;
+}
+
+.container {
+  width: 700px;
+  max-width: 90%;
+  margin: 40px auto;
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  text-align: center;
+  color: #1976d2;
+  margin-bottom: 10px;
+}
+
+.description {
+  text-align: center;
+  color: #777;
+  margin-bottom: 30px;
+}
+
+.section {
+  margin-bottom: 25px;
+}
+
+.section h2 {
+  font-size: 18px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.symptoms {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  max-height: 450px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.symptoms label {
+  padding: 12px;
+  background: #f5f9ff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.symptoms label:hover {
+  background: #e8f2ff;
+}
+
+input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  background: #1976d2;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #125ca3;
+}
+
+.result {
+  margin-top: 25px;
+  padding: 20px;
+  background: #f5f9ff;
+  border-radius: 10px;
+  display: none;
+}
+
+.result h2 {
+  color: #1976d2;
+  margin-bottom: 15px;
+}
+
+.result h3 {
+  margin-top: 15px;
+  margin-bottom: 8px;
+}
+
+.result ul {
+  margin-left: 20px;
+}
+
+.warning {
+  margin-top: 20px;
+  padding: 15px;
+  background: #fff3cd;
+  border-radius: 8px;
+  color: #856404;
+}
+.reload {
+  margin-top: 20px;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #ff9800; /* màu cam nổi bật */
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.reload:hover {
+  background: #e68900; /* màu cam đậm hơn khi hover */
+}
+.disabled-symptom {
+  opacity: 0.5;
+  pointer-events: none;
+  text-decoration: line-through; /* gạch ngang chữ */
+}

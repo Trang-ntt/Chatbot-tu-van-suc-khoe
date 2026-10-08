@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Chatbot Y tế - Giao diện ChatGPT</title>
+
+    <style>
+      :root {
+        --bg: #0f1724;
+        --panel: #0b1220;
+        --card: #0f1728;
+        --accent: #06b6d4;
+        --text: #e6eef6;
+        --muted: #9aa8b6;
+        --user: #0ea5a4;
+        --bot: #1f2937;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+
+        font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+
+        background: linear-gradient(180deg, #071029 0%, #0b1220 100%);
+
+        color: var(--text);
+      }
+
+      /* ==============================
+           APP
+           ============================== */
+
+      .app {
+        display: flex;
+
+        height: 100vh;
+        width: 100vw;
+
+        align-items: stretch;
+        justify-content: center;
+
+        padding: 24px;
+
+        box-sizing: border-box;
+      }
+
+      /* ==============================
+           CHAT CONTAINER
+           ============================== */
+
+      .chat {
+        width: 900px;
+
+        max-width: calc(100% - 48px);
+
+        height: calc(100% - 48px);
+
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.02),
+          rgba(255, 255, 255, 0.01)
+        );
+
+        border-radius: 12px;
+
+        box-shadow: 0 10px 30px rgba(2, 6, 23, 0.6);
+
+        display: flex;
+
+        overflow: hidden;
+      }
+
+      /* ==============================
+           SIDEBAR
+           ============================== */
+
+      .sidebar {
+        width: 260px;
+
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.01),
+          rgba(255, 255, 255, 0.005)
+        );
+
+        padding: 18px;
+
+        box-sizing: border-box;
+
+        border-right: 1px solid rgba(255, 255, 255, 0.03);
+
+        display: flex;
+
+        flex-direction: column;
+
+        gap: 12px;
+      }
+
+      .brand {
+        font-weight: 700;
+
+        font-size: 18px;
+
+        color: var(--accent);
+      }
+
+      .hint {
+        color: var(--muted);
+
+        font-size: 13px;
+
+        margin-top: 6px;
+
+        line-height: 1.5;
+      }
+
+      /* ==============================
+           SIDEBAR LINKS
+           ============================== */
+
+      .sidebar-links {
+        margin-top: 20px;
+
+        display: flex;
+
+        flex-direction: column;
+
+        gap: 8px;
+      }
+
+      .sidebar-links a {
+        color: var(--muted);
+
+        text-decoration: none;
+
+        font-size: 13px;
+
+        padding: 8px 10px;
+
+        border-radius: 7px;
+      }
+
+      .sidebar-links a:hover {
+        background: rgba(6, 182, 212, 0.08);
+
+        color: var(--accent);
+      }
+
+      /* ==============================
+           MAIN PANEL
+           ============================== */
+
+      .panel {
+        flex: 1;
+
+        display: flex;
+
+        flex-direction: column;
+
+        height: 100%;
+      }
+
+      /* ==============================
+           HEADER
+           ============================== */
+
+      .header {
+        padding: 18px 20px;
+
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+
+        display: flex;
+
+        align-items: center;
+
+        gap: 12px;
+      }
+
+      .title {
+        font-size: 18px;
+
+        font-weight: 600;
+      }
+
+      .subtitle {
+        color: var(--muted);
+
+        font-size: 13px;
+
+        margin-left: 8px;
+      }
+
+      /* ==============================
+           MESSAGES
+           ============================== */
+
+      .messages {
+        flex: 1;
+
+        padding: 20px;
+
+        overflow: auto;
+
+        display: flex;
+
+        flex-direction: column;
+
+        gap: 12px;
+
+        background:
+          radial-gradient(
+            800px 400px at 10% 10%,
+            rgba(6, 182, 212, 0.03),
+            transparent 6%
+          ),
+          radial-gradient(
+            600px 300px at 90% 90%,
+            rgba(99, 102, 241, 0.02),
+            transparent 6%
+          );
+      }
+
+      /* ==============================
+           MESSAGE
+           ============================== */
+
+      .msg {
+        max-width: 78%;
+
+        padding: 12px 14px;
+
+        border-radius: 12px;
+
+        line-height: 1.45;
+
+        font-size: 15px;
+
+        box-shadow: 0 2px 6px rgba(2, 6, 23, 0.4);
+
+        word-wrap: break-word;
+      }
+
+      /* ==============================
+           USER MESSAGE
+           ============================== */
+
+      .msg.user {
+        align-self: flex-end;
+
+        background: linear-gradient(
+          180deg,
+          rgba(14, 165, 164, 0.12),
+          rgba(14, 165, 164, 0.08)
+        );
+
+        border: 1px solid rgba(14, 165, 164, 0.18);
+
+        color: var(--text);
+
+        border-bottom-right-radius: 6px;
+      }
+
+      /* ==============================
+           BOT MESSAGE
+           ============================== */
+
+      .msg.bot {
+        align-self: flex-start;
+
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.02),
+          rgba(255, 255, 255, 0.01)
+        );
+
+        border: 1px solid rgba(255, 255, 255, 0.03);
+
+        color: var(--text);
+
+        border-bottom-left-radius: 6px;
+      }
+
+      /* ==============================
+           META
+           ============================== */
+
+      .meta {
+        font-size: 12px;
+
+        color: var(--muted);
+
+        margin-top: 6px;
+      }
+
+      /* ==============================
+           TYPING
+           ============================== */
+
+      .typing {
+        display: flex;
+
+        gap: 6px;
+
+        align-items: center;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+
+        border-radius: 50%;
+
+        background: var(--muted);
+
+        opacity: 0.9;
+
+        animation: blink 1.2s infinite;
+      }
+
+      .dot:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+
+      .dot:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+
+      @keyframes blink {
+        0% {
+          opacity: 0.2;
+        }
+
+        50% {
+          opacity: 1;
+        }
+
+        100% {
+          opacity: 0.2;
+        }
+      }
+
+      /* ==============================
+           INPUT AREA
+           ============================== */
+
+      .composer {
+        padding: 12px 16px;
+
+        border-top: 1px solid rgba(255, 255, 255, 0.03);
+
+        display: flex;
+
+        gap: 12px;
+
+        align-items: center;
+
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.01),
+          rgba(255, 255, 255, 0.005)
+        );
+      }
+
+      .input {
+        flex: 1;
+
+        display: flex;
+
+        gap: 8px;
+
+        align-items: center;
+
+        background: rgba(255, 255, 255, 0.02);
+
+        padding: 10px;
+
+        border-radius: 10px;
+
+        border: 1px solid rgba(255, 255, 255, 0.02);
+      }
+
+      .input textarea {
+        width: 100%;
+
+        resize: none;
+
+        border: 0;
+
+        outline: none;
+
+        background: transparent;
+
+        color: var(--text);
+
+        font-size: 15px;
+
+        line-height: 1.4;
+
+        max-height: 120px;
+
+        font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      }
+
+      .input textarea::placeholder {
+        color: var(--muted);
+      }
+
+      /* ==============================
+           SEND BUTTON
+           ============================== */
+
+      .send-btn {
+        background: var(--accent);
+
+        color: #042027;
+
+        border: none;
+
+        padding: 10px 14px;
+
+        border-radius: 8px;
+
+        font-weight: 600;
+
+        cursor: pointer;
+
+        min-width: 58px;
+      }
+
+      .send-btn:hover {
+        filter: brightness(1.08);
+      }
+
+      .send-btn:disabled {
+        opacity: 0.5;
+
+        cursor: not-allowed;
+      }
+
+      /* ==============================
+           SCROLLBAR
+           ============================== */
+
+      .messages::-webkit-scrollbar {
+        width: 7px;
+      }
+
+      .messages::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .messages::-webkit-scrollbar-thumb {
+        background: #263449;
+
+        border-radius: 10px;
+      }
+
+      /* ==============================
+           SMALL SCREENS
+           ============================== */
+
+      @media (max-width: 720px) {
+        .app {
+          padding: 0;
+        }
+
+        .chat {
+          width: 100%;
+
+          max-width: 100%;
+
+          height: 100%;
+
+          border-radius: 0;
+        }
+
+        .sidebar {
+          display: none;
+        }
+
+        .msg {
+          max-width: 85%;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="app">
+      <div class="chat" role="application" aria-label="Chatbot">
+        <!-- =====================================
+             SIDEBAR
+             ===================================== -->
+
+        <div class="sidebar" aria-label="Thanh bên">
+          <div class="brand">Chatbot Y tế</div>
+
+          <div class="hint">
+            Giao diện thử nghiệm. Kết nối Rasa qua REST API.
+          </div>
+
+          <div style="height: 12px"></div>
+
+          <div style="font-size: 13px; color: var(--muted)">Mẹo</div>
+
+          <div style="font-size: 13px; color: var(--muted)">
+            - Nhập câu hỏi, nhấn Enter để gửi.
+          </div>
+
+          <div style="font-size: 13px; color: var(--muted)">
+            - Bạn có thể hỏi về các triệu chứng.
+          </div>
+
+          <!-- MENU PHỤ -->
+
+          <div class="sidebar-links">
+            <a href="/home"> Trang chủ </a>
+
+            <a href="/symptoms"> Phân tích triệu chứng </a>
+
+            <a href="/medications"> Nhắc uống thuốc </a>
+
+            <a href="/appointments"> Lịch tái khám </a>
+          </div>
+        </div>
+
+        <!-- =====================================
+             MAIN PANEL
+             ===================================== -->
+
+        <div class="panel">
+          <!-- HEADER -->
+
+          <div class="header">
+            <div class="title">Chatbot Y tế</div>
+
+            <div class="subtitle">Hỏi đáp sức khỏe</div>
+          </div>
+
+          <!-- =================================
+                 MESSAGES
+                 ================================= -->
+
+          <div id="messages" class="messages" aria-live="polite"></div>
+
+          <!-- =================================
+                 COMPOSER
+                 ================================= -->
+
+          <div class="composer">
+            <div class="input" role="textbox" aria-label="Nhập tin nhắn">
+              <textarea
+                id="input"
+                rows="1"
+                placeholder="Gõ câu hỏi..."
+                autocomplete="off"
+              ></textarea>
+            </div>
+
+            <button id="send" class="send-btn" type="button">Gửi</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /* =====================================================
+       LẤY TOKEN ĐĂNG NHẬP
+       ===================================================== */
+
+      function getToken() {
+        return (
+          localStorage.getItem("healthbot_token") ||
+          localStorage.getItem("token") ||
+          localStorage.getItem("access_token") ||
+          localStorage.getItem("jwt")
+        );
+      }
+
+      const token = getToken();
+
+      /* =====================================================
+       NẾU CHƯA ĐĂNG NHẬP
+       ===================================================== */
+
+      if (!token) {
+        window.location.href = "/";
+      }
+
+      /* =====================================================
+       DOM
+       ===================================================== */
+
+      const messagesEl = document.getElementById("messages");
+
+      const inputEl = document.getElementById("input");
+
+      const sendBtn = document.getElementById("send");
+
+      /* =====================================================
+       THÊM MESSAGE
+       ===================================================== */
+
+      function addMessage(text, who = "bot", meta = "") {
+        const wrapper = document.createElement("div");
+
+        wrapper.className = "msg " + (who === "user" ? "user" : "bot");
+
+        const content = document.createElement("div");
+
+        content.className = "content";
+
+        /*
+         * textContent được sử dụng thay vì
+         * innerHTML để tránh chèn HTML nguy hiểm.
+         */
+
+        content.textContent = text;
+
+        wrapper.appendChild(content);
+
+        if (meta) {
+          const metaElement = document.createElement("div");
+
+          metaElement.className = "meta";
+
+          metaElement.textContent = meta;
+
+          wrapper.appendChild(metaElement);
+        }
+
+        messagesEl.appendChild(wrapper);
+
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      /* =====================================================
+       TYPING INDICATOR
+       ===================================================== */
+
+      let typingEl = null;
+
+      function showTyping() {
+        if (typingEl) {
+          return;
+        }
+
+        typingEl = document.createElement("div");
+
+        typingEl.className = "msg bot";
+
+        typingEl.innerHTML = `
+            <div class="typing">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        `;
+
+        messagesEl.appendChild(typingEl);
+
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      function hideTyping() {
+        if (!typingEl) {
+          return;
+        }
+
+        typingEl.remove();
+
+        typingEl = null;
+      }
+
+      /* =====================================================
+       GỌI FASTAPI
+       ===================================================== */
+
+      async function sendToBackend(message) {
+        showTyping();
+
+        try {
+          const response = await fetch("/api/chat", {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json",
+
+              Authorization: "Bearer " + getToken(),
+            },
+
+            body: JSON.stringify({
+              message: message,
+            }),
+          });
+
+          let data = null;
+
+          try {
+            data = await response.json();
+          } catch (error) {
+            data = null;
+          }
+
+          hideTyping();
+
+          /* ==========================
+               TOKEN HẾT HẠN
+               ========================== */
+
+          if (response.status === 401) {
+            addMessage(
+              "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+              "bot",
+            );
+
+            setTimeout(function () {
+              localStorage.removeItem("healthbot_token");
+
+              localStorage.removeItem("token");
+
+              localStorage.removeItem("access_token");
+
+              localStorage.removeItem("jwt");
+
+              window.location.href = "/";
+            }, 1500);
+
+            return;
+          }
+
+          /* ==========================
+               LỖI API
+               ========================== */
+
+          if (!response.ok) {
+            throw new Error(data?.detail || "Không thể kết nối tới hệ thống.");
+          }
+
+          /* ==========================
+               PHẢN HỒI CHATBOT
+               ========================== */
+
+          const reply = data?.reply || data?.response || data?.message;
+
+          if (reply) {
+            addMessage(reply, "bot");
+          } else {
+            addMessage("Bot không có phản hồi.", "bot");
+          }
+        } catch (error) {
+          hideTyping();
+
+          addMessage("Lỗi: " + error.message, "bot");
+        }
+      }
+
+      /* =====================================================
+       GỬI MESSAGE
+       ===================================================== */
+
+      async function handleSend() {
+        const text = inputEl.value.trim();
+
+        if (!text) {
+          return;
+        }
+
+        /* Hiển thị câu hỏi */
+
+        addMessage(text, "user");
+
+        /* Xóa ô nhập */
+
+        inputEl.value = "";
+
+        /* Khóa nút */
+
+        sendBtn.disabled = true;
+
+        try {
+          await sendToBackend(text);
+        } finally {
+          sendBtn.disabled = false;
+
+          inputEl.focus();
+        }
+      }
+
+      /* =====================================================
+       CLICK GỬI
+       ===================================================== */
+
+      sendBtn.addEventListener("click", handleSend);
+
+      /* =====================================================
+       ENTER GỬI
+       SHIFT + ENTER = XUỐNG DÒNG
+       ===================================================== */
+
+      inputEl.addEventListener("keydown", function (event) {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+
+          handleSend();
+        }
+      });
+
+      /* =====================================================
+       LỜI CHÀO BAN ĐẦU
+       ===================================================== */
+
+      window.addEventListener("load", function () {
+        addMessage(
+          "Xin chào! Tôi là Chatbot Y tế. Bạn muốn hỏi gì về sức khỏe?",
+          "bot",
+        );
+      });
+    </script>
+  </body>
+</html>
