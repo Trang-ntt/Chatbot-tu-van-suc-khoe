@@ -3,138 +3,661 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <title>Phân tích triệu chứng</title>
-
+    <title>Phân tích triệu chứng sức khỏe</title>
     <link rel="stylesheet" href="style.css" />
   </head>
-
   <body>
-    <div class="container">
-      <h1>🩺 Phân tích triệu chứng sức khỏe</h1>
+    <main class="container">
+      <section class="hero">
+        <div class="hero-content">
+          <span class="hero-badge">CHĂM SÓC SỨC KHỎE</span>
+          <h1>Phân tích triệu chứng sức khỏe</h1>
+          <p class="description">
+            Chọn những triệu chứng bạn đang gặp để nhận gợi ý sơ bộ và tham khảo
+            khuyến nghị phù hợp.
+          </p>
+          <div class="hero-note">
+            <span class="note-icon">+</span
+            ><span>Chủ động theo dõi sức khỏe mỗi ngày</span>
+          </div>
+        </div>
+        <div class="hero-image">
+          <img
+            src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1000&q=85"
+            alt="Nhân viên y tế đang chăm sóc sức khỏe"
+          />
+          <div class="image-caption">
+            <span class="caption-icon">♥</span>
+            <div>
+              <strong>Sức khỏe của bạn</strong>
+              <p>Bắt đầu từ việc lắng nghe cơ thể</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      <p class="description">
-        Nhập các triệu chứng bạn đang gặp để nhận được gợi ý sơ bộ.
-      </p>
+      <section class="form-section" id="symptomSection">
+        <div class="section-heading">
+          <span class="heading-number">01</span>
+          <div>
+            <h2>Chọn triệu chứng</h2>
+            <p>Tìm kiếm hoặc chọn nhóm để dễ tìm triệu chứng hơn.</p>
+          </div>
+        </div>
+        <div class="symptom-tools">
+          <label class="search-label" for="symptomSearch"
+            >Tìm triệu chứng</label
+          >
+          <input
+            id="symptomSearch"
+            class="symptom-search"
+            type="search"
+            placeholder="Ví dụ: đau đầu, ho, sốt..."
+            autocomplete="off"
+          />
+          <div class="filter-heading">
+            <span>Nhóm triệu chứng</span
+            ><button type="button" id="clearFilters" class="text-button">
+              Xóa bộ lọc
+            </button>
+          </div>
+          <div
+            class="category-filters"
+            id="categoryFilters"
+            aria-label="Lọc theo nhóm triệu chứng"
+          >
+            <button
+              type="button"
+              class="category-chip active"
+              data-category="Tất cả"
+            >
+              Tất cả
+            </button>
+            <button
+              type="button"
+              class="category-chip"
+              data-category="Toàn thân"
+            >
+              Toàn thân
+            </button>
+            <button type="button" class="category-chip" data-category="Hô hấp">
+              Hô hấp
+            </button>
+            <button
+              type="button"
+              class="category-chip"
+              data-category="Tiêu hóa"
+            >
+              Tiêu hóa
+            </button>
+            <button
+              type="button"
+              class="category-chip"
+              data-category="Tiết niệu"
+            >
+              Tiết niệu
+            </button>
+            <button
+              type="button"
+              class="category-chip"
+              data-category="Cơ xương khớp"
+            >
+              Cơ xương khớp
+            </button>
+            <button
+              type="button"
+              class="category-chip"
+              data-category="Tim mạch"
+            >
+              Tim mạch
+            </button>
+            <button
+              type="button"
+              class="category-chip"
+              data-category="Thần kinh"
+            >
+              Thần kinh
+            </button>
+            <button
+              type="button"
+              class="category-chip"
+              data-category="Nội tiết"
+            >
+              Nội tiết
+            </button>
+            <button
+              type="button"
+              class="category-chip"
+              data-category="Thị giác"
+            >
+              Thị giác
+            </button>
+            <button
+              type="button"
+              class="category-chip"
+              data-category="Tai mũi họng"
+            >
+              Tai mũi họng
+            </button>
+            <button type="button" class="category-chip" data-category="Trí nhớ">
+              Trí nhớ
+            </button>
+            <button type="button" class="category-chip" data-category="Da">
+              Da
+            </button>
+            <button
+              type="button"
+              class="category-chip"
+              data-category="Tâm lý &amp; giấc ngủ"
+            >
+              Tâm lý &amp; giấc ngủ
+            </button>
+            <button
+              type="button"
+              class="category-chip"
+              data-category="Dấu hiệu nguy hiểm"
+            >
+              Dấu hiệu nguy hiểm
+            </button>
+            <button type="button" class="category-chip" data-category="Khác">
+              Khác
+            </button>
+          </div>
+          <div class="selection-summary">
+            <span id="selectedCount">Đã chọn 0 triệu chứng</span
+            ><button type="button" id="clearSelected" class="text-button">
+              Bỏ chọn tất cả
+            </button>
+          </div>
+          <div id="selectedTags" class="selected-tags" aria-live="polite"></div>
+        </div>
+        <div class="symptoms" id="symptomsList">
+          <label
+            class="symptom-card"
+            data-category="Toàn thân"
+            data-search="sốt"
+            ><input type="checkbox" value="sốt" /> <span>Sốt</span></label
+          >
+          <label class="symptom-card" data-category="Hô hấp" data-search="ho"
+            ><input type="checkbox" value="ho" /> <span>Ho</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Hô hấp"
+            data-search="đau họng"
+            ><input type="checkbox" value="đau họng" />
+            <span>Đau họng</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Thần kinh"
+            data-search="đau đầu"
+            ><input type="checkbox" value="đau đầu" />
+            <span>Đau đầu</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Toàn thân"
+            data-search="mệt mỏi"
+            ><input type="checkbox" value="mệt mỏi" />
+            <span>Mệt mỏi</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Toàn thân"
+            data-search="ớn lạnh"
+            ><input type="checkbox" value="ớn lạnh" />
+            <span>Ớn lạnh</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Cơ xương khớp"
+            data-search="đau cơ"
+            ><input type="checkbox" value="đau cơ" /> <span>Đau cơ</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Hô hấp"
+            data-search="khó thở"
+            ><input type="checkbox" value="khó thở" />
+            <span>Khó thở</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tim mạch"
+            data-search="đau ngực"
+            ><input type="checkbox" value="đau ngực" />
+            <span>Đau ngực</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Hô hấp"
+            data-search="khò khè"
+            ><input type="checkbox" value="khò khè" />
+            <span>Khò khè</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Hô hấp"
+            data-search="nặng ngực"
+            ><input type="checkbox" value="nặng ngực" />
+            <span>Nặng ngực</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tiêu hóa"
+            data-search="đau bụng"
+            ><input type="checkbox" value="đau bụng" />
+            <span>Đau bụng</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tiêu hóa"
+            data-search="buồn nôn"
+            ><input type="checkbox" value="buồn nôn" />
+            <span>Buồn nôn</span></label
+          >
+          <label class="symptom-card" data-category="Tiêu hóa" data-search="nôn"
+            ><input type="checkbox" value="nôn" /> <span>Nôn</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tiêu hóa"
+            data-search="tiêu chảy"
+            ><input type="checkbox" value="tiêu chảy" />
+            <span>Tiêu chảy</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tiêu hóa"
+            data-search="đầy bụng"
+            ><input type="checkbox" value="đầy bụng" />
+            <span>Đầy bụng</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tiêu hóa"
+            data-search="chán ăn"
+            ><input type="checkbox" value="chán ăn" />
+            <span>Chán ăn</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tiêu hóa"
+            data-search="táo bón"
+            ><input type="checkbox" value="táo bón" />
+            <span>Táo bón</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tiêu hóa"
+            data-search="ợ chua"
+            ><input type="checkbox" value="ợ chua" /> <span>Ợ chua</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tiêu hóa"
+            data-search="ợ nóng"
+            ><input type="checkbox" value="ợ nóng" /> <span>Ợ nóng</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Toàn thân"
+            data-search="vàng da"
+            ><input type="checkbox" value="vàng da" />
+            <span>Vàng da</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tiết niệu"
+            data-search="tiểu buốt"
+            ><input type="checkbox" value="tiểu buốt" />
+            <span>Tiểu buốt</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tiết niệu"
+            data-search="tiểu ra máu"
+            ><input type="checkbox" value="tiểu ra máu" />
+            <span>Tiểu ra máu</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tiết niệu"
+            data-search="tiểu nhiều lần"
+            ><input type="checkbox" value="tiểu nhiều lần" />
+            <span>Tiểu nhiều lần</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tiết niệu"
+            data-search="đau bụng dưới"
+            ><input type="checkbox" value="đau bụng dưới" />
+            <span>Đau bụng dưới</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Toàn thân"
+            data-search="sốt nhẹ"
+            ><input type="checkbox" value="sốt nhẹ" />
+            <span>Sốt nhẹ</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Hô hấp"
+            data-search="nghẹt mũi"
+            ><input type="checkbox" value="nghẹt mũi" />
+            <span>Nghẹt mũi</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Hô hấp"
+            data-search="sổ mũi"
+            ><input type="checkbox" value="sổ mũi" /> <span>Sổ mũi</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Hô hấp"
+            data-search="đau mặt"
+            ><input type="checkbox" value="đau mặt" />
+            <span>Đau mặt</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Cơ xương khớp"
+            data-search="đau khớp"
+            ><input type="checkbox" value="đau khớp" />
+            <span>Đau khớp</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Cơ xương khớp"
+            data-search="sưng khớp"
+            ><input type="checkbox" value="sưng khớp" />
+            <span>Sưng khớp</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Cơ xương khớp"
+            data-search="cứng khớp"
+            ><input type="checkbox" value="cứng khớp" />
+            <span>Cứng khớp</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Cơ xương khớp"
+            data-search="dễ gãy xương"
+            ><input type="checkbox" value="dễ gãy xương" />
+            <span>Dễ gãy xương</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Thần kinh"
+            data-search="chóng mặt"
+            ><input type="checkbox" value="chóng mặt" />
+            <span>Chóng mặt</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Toàn thân"
+            data-search="da xanh xao"
+            ><input type="checkbox" value="da xanh xao" />
+            <span>Da xanh xao</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Nội tiết"
+            data-search="khát nước nhiều"
+            ><input type="checkbox" value="khát nước nhiều" />
+            <span>Khát nước nhiều</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Thị giác"
+            data-search="mờ mắt"
+            ><input type="checkbox" value="mờ mắt" /> <span>Mờ mắt</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tim mạch"
+            data-search="tim đập nhanh"
+            ><input type="checkbox" value="tim đập nhanh" />
+            <span>Tim đập nhanh</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Dấu hiệu nguy hiểm"
+            data-search="yếu liệt tay chân"
+            ><input type="checkbox" value="yếu liệt tay chân" />
+            <span>Yếu liệt tay chân</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Dấu hiệu nguy hiểm"
+            data-search="nói khó"
+            ><input type="checkbox" value="nói khó" />
+            <span>Nói khó</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Dấu hiệu nguy hiểm"
+            data-search="méo miệng"
+            ><input type="checkbox" value="méo miệng" />
+            <span>Méo miệng</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Dấu hiệu nguy hiểm"
+            data-search="đau đầu dữ dội"
+            ><input type="checkbox" value="đau đầu dữ dội" />
+            <span>Đau đầu dữ dội</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tâm lý & giấc ngủ"
+            data-search="buồn bã"
+            ><input type="checkbox" value="buồn bã" />
+            <span>Buồn bã</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tâm lý & giấc ngủ"
+            data-search="mất ngủ"
+            ><input type="checkbox" value="mất ngủ" />
+            <span>Mất ngủ</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tâm lý & giấc ngủ"
+            data-search="mất hứng thú"
+            ><input type="checkbox" value="mất hứng thú" />
+            <span>Mất hứng thú</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tâm lý & giấc ngủ"
+            data-search="bồn chồn"
+            ><input type="checkbox" value="bồn chồn" />
+            <span>Bồn chồn</span></label
+          >
+          <label class="symptom-card" data-category="Da" data-search="ngứa"
+            ><input type="checkbox" value="ngứa" /> <span>Ngứa</span></label
+          >
+          <label class="symptom-card" data-category="Da" data-search="phát ban"
+            ><input type="checkbox" value="phát ban" />
+            <span>Phát ban</span></label
+          >
+          <label class="symptom-card" data-category="Da" data-search="đỏ da"
+            ><input type="checkbox" value="đỏ da" /> <span>Đỏ da</span></label
+          >
+          <label class="symptom-card" data-category="Da" data-search="khô da"
+            ><input type="checkbox" value="khô da" /> <span>Khô da</span></label
+          >
+          <label class="symptom-card" data-category="Da" data-search="mụn nước"
+            ><input type="checkbox" value="mụn nước" />
+            <span>Mụn nước</span></label
+          >
+          <label class="symptom-card" data-category="Da" data-search="đau rát"
+            ><input type="checkbox" value="đau rát" />
+            <span>Đau rát</span></label
+          >
+          <label class="symptom-card" data-category="Da" data-search="da khô"
+            ><input type="checkbox" value="da khô" /> <span>Da khô</span></label
+          >
+          <label class="symptom-card" data-category="Da" data-search="rụng tóc"
+            ><input type="checkbox" value="rụng tóc" />
+            <span>Rụng tóc</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Toàn thân"
+            data-search="lạnh tay chân"
+            ><input type="checkbox" value="lạnh tay chân" />
+            <span>Lạnh tay chân</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Thần kinh"
+            data-search="run tay"
+            ><input type="checkbox" value="run tay" />
+            <span>Run tay</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tâm lý & giấc ngủ"
+            data-search="khó ngủ"
+            ><input type="checkbox" value="khó ngủ" />
+            <span>Khó ngủ</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Hô hấp"
+            data-search="khàn tiếng"
+            ><input type="checkbox" value="khàn tiếng" />
+            <span>Khàn tiếng</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Cơ xương khớp"
+            data-search="đau lưng"
+            ><input type="checkbox" value="đau lưng" />
+            <span>Đau lưng</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Cơ xương khớp"
+            data-search="đau cổ"
+            ><input type="checkbox" value="đau cổ" /> <span>Đau cổ</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Thị giác"
+            data-search="đau mắt"
+            ><input type="checkbox" value="đau mắt" />
+            <span>Đau mắt</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Tai mũi họng"
+            data-search="đau tai"
+            ><input type="checkbox" value="đau tai" />
+            <span>Đau tai</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Trí nhớ"
+            data-search="hay quên"
+            ><input type="checkbox" value="hay quên" />
+            <span>Hay quên</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Trí nhớ"
+            data-search="lú lẫn"
+            ><input type="checkbox" value="lú lẫn" /> <span>Lú lẫn</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Trí nhớ"
+            data-search="khó tập trung"
+            ><input type="checkbox" value="khó tập trung" />
+            <span>Khó tập trung</span></label
+          >
+          <label
+            class="symptom-card"
+            data-category="Trí nhớ"
+            data-search="thay đổi tính cách"
+            ><input type="checkbox" value="thay đổi tính cách" />
+            <span>Thay đổi tính cách</span></label
+          >
+        </div>
+        <p id="noSymptomsFound" class="empty-search" hidden>
+          Không tìm thấy triệu chứng phù hợp. Hãy thử từ khóa khác hoặc chọn
+          nhóm “Tất cả”.
+        </p>
+        <p class="symptom-help">
+          Lưu ý: Chọn các triệu chứng thực sự đang gặp. Danh sách chỉ hỗ trợ
+          tham khảo, không thay thế chẩn đoán y tế.
+        </p>
+      </section>
 
-      <!-- Nhập triệu chứng -->
-      <div class="symptoms">
-        <label><input type="checkbox" value="sốt" /> Sốt</label>
-        <label><input type="checkbox" value="ho" /> Ho</label>
-        <label><input type="checkbox" value="đau họng" /> Đau họng</label>
-        <label><input type="checkbox" value="đau đầu" /> Đau đầu</label>
-        <label><input type="checkbox" value="mệt mỏi" /> Mệt mỏi</label>
-        <label><input type="checkbox" value="ớn lạnh" /> Ớn lạnh</label>
-        <label><input type="checkbox" value="đau cơ" /> Đau cơ</label>
-        <label><input type="checkbox" value="khó thở" /> Khó thở</label>
-        <label><input type="checkbox" value="đau ngực" /> Đau ngực</label>
-        <label><input type="checkbox" value="khò khè" /> Khò khè</label>
-        <label><input type="checkbox" value="nặng ngực" /> Nặng ngực</label>
-        <label><input type="checkbox" value="đau bụng" /> Đau bụng</label>
-        <label><input type="checkbox" value="buồn nôn" /> Buồn nôn</label>
-        <label><input type="checkbox" value="nôn" /> Nôn</label>
-        <label><input type="checkbox" value="tiêu chảy" /> Tiêu chảy</label>
-        <label><input type="checkbox" value="đầy bụng" /> Đầy bụng</label>
-        <label><input type="checkbox" value="chán ăn" /> Chán ăn</label>
-        <label><input type="checkbox" value="táo bón" /> Táo bón</label>
-        <label><input type="checkbox" value="ợ chua" /> Ợ chua</label>
-        <label><input type="checkbox" value="ợ nóng" /> Ợ nóng</label>
-        <label><input type="checkbox" value="vàng da" /> Vàng da</label>
-        <label><input type="checkbox" value="tiểu buốt" /> Tiểu buốt</label>
-        <label><input type="checkbox" value="tiểu ra máu" /> Tiểu ra máu</label>
-        <label
-          ><input type="checkbox" value="tiểu nhiều lần" /> Tiểu nhiều
-          lần</label
-        >
-        <label
-          ><input type="checkbox" value="đau bụng dưới" /> Đau bụng dưới</label
-        >
-        <label><input type="checkbox" value="sốt nhẹ" /> Sốt nhẹ</label>
-        <label><input type="checkbox" value="nghẹt mũi" /> Nghẹt mũi</label>
-        <label><input type="checkbox" value="sổ mũi" /> Sổ mũi</label>
-        <label><input type="checkbox" value="đau mặt" /> Đau mặt</label>
-        <label><input type="checkbox" value="đau khớp" /> Đau khớp</label>
-        <label><input type="checkbox" value="sưng khớp" /> Sưng khớp</label>
-        <label><input type="checkbox" value="cứng khớp" /> Cứng khớp</label>
-        <label
-          ><input type="checkbox" value="dễ gãy xương" /> Dễ gãy xương</label
-        >
-        <label><input type="checkbox" value="chóng mặt" /> Chóng mặt</label>
-        <label><input type="checkbox" value="da xanh xao" /> Da xanh xao</label>
-        <label
-          ><input type="checkbox" value="khát nước nhiều" /> Khát nước
-          nhiều</label
-        >
-        <label><input type="checkbox" value="mờ mắt" /> Mờ mắt</label>
-        <label
-          ><input type="checkbox" value="tim đập nhanh" /> Tim đập nhanh</label
-        >
-        <label
-          ><input type="checkbox" value="yếu liệt tay chân" /> Yếu liệt tay
-          chân</label
-        >
-        <label><input type="checkbox" value="nói khó" /> Nói khó</label>
-        <label><input type="checkbox" value="méo miệng" /> Méo miệng</label>
-        <label
-          ><input type="checkbox" value="đau đầu dữ dội" /> Đau đầu dữ
-          dội</label
-        >
-        <label><input type="checkbox" value="buồn bã" /> Buồn bã</label>
-        <label><input type="checkbox" value="mất ngủ" /> Mất ngủ</label>
-        <label
-          ><input type="checkbox" value="mất hứng thú" /> Mất hứng thú</label
-        >
-        <label><input type="checkbox" value="bồn chồn" /> Bồn chồn</label>
-        <label><input type="checkbox" value="ngứa" /> Ngứa</label>
-        <label><input type="checkbox" value="phát ban" /> Phát ban</label>
-        <label><input type="checkbox" value="đỏ da" /> Đỏ da</label>
-        <label><input type="checkbox" value="khô da" /> Khô da</label>
-        <label><input type="checkbox" value="mụn nước" /> Mụn nước</label>
-        <label><input type="checkbox" value="đau rát" /> Đau rát</label>
-        <label><input type="checkbox" value="da khô" /> Da khô</label>
-        <label><input type="checkbox" value="rụng tóc" /> Rụng tóc</label>
-        <label
-          ><input type="checkbox" value="lạnh tay chân" /> Lạnh tay chân</label
-        >
-        <label><input type="checkbox" value="run tay" /> Run tay</label>
-        <label><input type="checkbox" value="khó ngủ" /> Khó ngủ</label>
-        <label><input type="checkbox" value="khàn tiếng" /> Khàn tiếng</label>
-        <label><input type="checkbox" value="đau lưng" /> Đau lưng</label>
-        <label><input type="checkbox" value="đau cổ" /> Đau cổ</label>
-        <label><input type="checkbox" value="đau mắt" /> Đau mắt</label>
-        <label><input type="checkbox" value="đau tai" /> Đau tai</label>
-      </div>
-
-      <!-- Thời gian -->
-      <div class="section">
-        <h2>2. Thời gian xuất hiện</h2>
-
+      <section class="section">
+        <div class="section-heading">
+          <span class="heading-number">02</span>
+          <div>
+            <h2>Độ tuổi</h2>
+            <p>Nhập tuổi hiện tại để hệ thống tham khảo nhóm tuổi phù hợp.</p>
+          </div>
+        </div>
+        <input
+          type="number"
+          id="age"
+          min="0"
+          max="120"
+          placeholder="Nhập tuổi của bạn"
+          required
+        />
+      </section>
+      <section class="section">
+        <div class="section-heading">
+          <span class="heading-number">03</span>
+          <div>
+            <h2>Thời gian xuất hiện</h2>
+            <p>Triệu chứng bắt đầu từ khi nào?</p>
+          </div>
+        </div>
         <select id="duration">
           <option value="1">Trong 1 ngày</option>
           <option value="2">2 - 3 ngày</option>
           <option value="4">4 - 7 ngày</option>
           <option value="8">Trên 7 ngày</option>
         </select>
-      </div>
-
-      <!-- Mức độ -->
-      <div class="section">
-        <h2>3. Mức độ triệu chứng</h2>
-
+      </section>
+      <section class="section">
+        <div class="section-heading">
+          <span class="heading-number">04</span>
+          <div>
+            <h2>Mức độ triệu chứng</h2>
+            <p>Chọn mức độ phù hợp với tình trạng hiện tại.</p>
+          </div>
+        </div>
         <select id="severity">
           <option value="nhẹ">Nhẹ</option>
           <option value="vừa">Vừa</option>
           <option value="nặng">Nặng</option>
         </select>
-      </div>
-
-      <!-- Nút -->
-      <button onclick="analyzeSymptoms()">🔍 Phân tích triệu chứng</button>
-
-      <!-- Kết quả -->
-      <div id="result" class="result"></div>
-    </div>
-
+      </section>
+      <button class="analyze-button" id="analyzeButton" type="button">
+        <span>⌕</span> Phân tích triệu chứng
+      </button>
+      <p class="privacy-note">
+        Thông tin phân tích chỉ nhằm mục đích tham khảo sức khỏe.
+      </p>
+      <div id="result" class="result" aria-live="polite"></div>
+      <footer class="page-footer">
+        <span>+</span> Chăm sóc sức khỏe bắt đầu từ sự quan tâm mỗi ngày.
+      </footer>
+    </main>
     <script src="script.js"></script>
   </body>
 </html>
