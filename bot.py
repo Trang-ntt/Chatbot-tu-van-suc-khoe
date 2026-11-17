@@ -41,6 +41,47 @@ def xay_mo_hinh():
     return benh,tcs,P
 
 VI_TC,VI_BENH=nap_tu_dien(); DONG_NGHIA=nap_dong_nghia()
+# Thông tin nhóm tuổi tham khảo được lưu riêng, không thay đổi xác suất/điểm của mô hình.
+def nap_do_tuoi():
+    p = BASE / 'phan_loai_do_tuoi.csv'
+    if not p.exists(): return {}
+    d = {}
+    with p.open(encoding='utf-8-sig', newline='') as f:
+        for r in csv.DictReader(f):
+            d[r['benh_en'].strip()] = r
+    return d
+
+DO_TUOI = nap_do_tuoi()
+
+def nhom_tuoi(tuoi):
+    if tuoi <= 5: return 'Trẻ nhỏ (0–5 tuổi)'
+    if tuoi <= 12: return 'Trẻ em (6–12 tuổi)'
+    if tuoi <= 17: return 'Thanh thiếu niên (13–17 tuổi)'
+    if tuoi <= 39: return 'Người trưởng thành trẻ (18–39 tuổi)'
+    if tuoi <= 59: return 'Trung niên (40–59 tuổi)'
+    return 'Người cao tuổi (từ 60 tuổi)'
+
+def thong_tin_tuoi(benh, tuoi, gioi=None):
+    r = DO_TUOI.get(benh)
+    if not r:
+        return {'nhom_tuoi_thuong_gap': 'Chưa có dữ liệu tuổi đáng tin cậy',
+                'phu_hop_tuoi': 'Chưa đủ dữ liệu',
+                'ghi_chu_tuoi': 'Không dùng tuổi để loại trừ bệnh này.'}
+    if r.get('gioi_tinh_ap_dung') == 'Nam / người có tuyến tiền liệt' and gioi == 'nu':
+        return {'nhom_tuoi_thuong_gap': r['nhom_tuoi_thuong_gap'],
+                'phu_hop_tuoi': 'Không áp dụng theo giới tính khai báo',
+                'ghi_chu_tuoi': 'Bệnh này liên quan đến tuyến tiền liệt; không áp dụng cho người khai báo giới tính nữ.'}
+    lo, hi = int(r['tuoi_min_tham_khao']), int(r['tuoi_max_tham_khao'])
+    if r.get('loai_thong_tin') == 'Độ tuổi khởi phát':
+        phu_hop = 'Thông tin về tuổi khởi phát, không phải giới hạn tuổi hiện tại'
+    else:
+        # Đối chiếu tuổi thường gặp, không phải điều kiện chẩn đoán hay loại trừ bệnh.
+        hop = lo <= tuoi <= hi
+        phu_hop = 'Nằm trong khoảng tuổi thường gặp' if hop else 'Ngoài khoảng tuổi thường gặp'
+    return {'nhom_tuoi_thuong_gap': r['nhom_tuoi_thuong_gap'],
+            'phu_hop_tuoi': phu_hop,
+            'ghi_chu_tuoi': r['ghi_chu_tuoi']}
+
 BENH,TCS,P=xay_mo_hinh(); BENH_LOWER=[norm(x) for x in BENH]
 LOGP=np.log(np.clip(P,1e-9,1)); LOG1P=np.log(np.clip(1-P,1e-9,1))
 # Tạo bộ nhận diện, ưu tiên cụm dài; biên từ giúp tránh nhận nhầm từ con.
@@ -52,7 +93,7 @@ for i,tc in enumerate(TCS):
         if phrase and len(phrase)>=2: CUM.append((phrase,i))
 CUM.sort(key=lambda x:len(x[0]),reverse=True)
 NEG=re.compile(r'\b(khong|ko|chua|khong bi|khong co|khong thay|khong con)\b')
-RED_FLAGS=['dau nguc du doi','kho tho','ho ra mau','non ra mau','bat tinh','co giat','liet nua nguoi','noi kho dot ngot','dau dau du doi dot ngot']
+RED_FLAGS=['kho tho nang','rat kho tho','khong the tho','khong noi duoc thanh cau','tim tai','bat tinh','ngat','co giat','liet nua nguoi','meo mieng dot ngot','noi kho dot ngot','dau dau du doi dot ngot','dau nguc du doi']
 
 def trich(text):
     t=' '+norm(text)+' '; co=set();khong=set()
@@ -68,7 +109,7 @@ def trich(text):
 
 def tinh(co,khong,tuoi,gioi):
     # Không được tạo kết quả khi chưa có triệu chứng được xác nhận.
-    if not co and not khong:return []
+    if not co:return []
     s=np.zeros(len(BENH),dtype=np.float64)
     if co:s+=LOGP[:,sorted(co)].sum(axis=1)
     if khong:s+=LOG1P[:,sorted(khong)].sum(axis=1)
@@ -93,16 +134,25 @@ def tra_loi_co_khong(text):
     if re.match(r'^(khong|ko|chua|no|n|hok)\b',t):return False
     return None
 
-def canh_bao(co,text):
-    # Chỉ kiểm tra cụm từ cảnh báo trong nội dung người dùng vừa nhập.
-    # Không dùng biến x chưa được khai báo (nguyên nhân gây NameError).
+def phan_loai_canh_bao(text):
+    # Phân biệt triệu chứng cần được đánh giá sớm với dấu hiệu cấp cứu rõ rệt.
     t=norm(text)
-    cum_canh_bao = (
-        'dau nguc', 'kho tho', 'ho ra mau', 'non ra mau',
-        'bat tinh', 'co giat', 'liet nua nguoi',
+    # Loại các cụm bị phủ định để không cảnh báo nhầm khi người dùng nói 'không khó thở'.
+    t=re.sub(r'\b(?:khong|ko|chua)\s+(?:bi\s+|co\s+)?(?:kho tho|hut hoi|dau nguc|ho ra mau|non ra mau)\b', ' ', t)
+    khan_cap = (
+        'kho tho nang', 'rat kho tho', 'khong the tho',
+        'khong noi duoc thanh cau', 'tim tai', 'bat tinh', 'ngat',
+        'co giat', 'liet nua nguoi', 'meo mieng dot ngot',
         'noi kho dot ngot', 'dau dau du doi dot ngot',
-        'dau nguc du doi'
+        'dau nguc du doi', 'ho ra mau nhieu'
     )
-    return any(cum in t for cum in cum_canh_bao)
+    can_danh_gia_som = ('kho tho', 'hut hoi', 'dau nguc', 'ho ra mau', 'non ra mau')
+    if any(x in t for x in khan_cap): return 'khan_cap'
+    if any(x in t for x in can_danh_gia_som): return 'can_danh_gia_som'
+    return None
+
+def canh_bao(co,text):
+    # Tương thích với phần gọi cũ: True chỉ dành cho dấu hiệu cấp cứu rõ rệt.
+    return phan_loai_canh_bao(text) == 'khan_cap'
 
 def ten_tc(i):return VI_TC.get(TCS[i],TCS[i])

@@ -9,15 +9,15 @@ PHIEN={}; KHOA=threading.Lock(); GIOI_TINH_HOP_LE=('nam','nu'); SO_CAU_HOI_TOI_D
 
 def tao_phien(tuoi,gioi):
     ma=str(uuid.uuid4())
-    with KHOA: PHIEN[ma]={'tuoi':tuoi,'gioi':gioi,'co':set(),'khong':set(),'da_hoi':set(),'so_cau_hoi':0,'cau_hoi_dang_cho':None,'canh_bao':False}
+    with KHOA: PHIEN[ma]={'tuoi':tuoi,'gioi':gioi,'co':set(),'khong':set(),'da_hoi':set(),'so_cau_hoi':0,'cau_hoi_dang_cho':None,'canh_bao':False,'muc_canh_bao':None}
     return ma
 
 def lay_ket_qua(p):return bot.tinh(p['co'],p['khong'],p['tuoi'],p['gioi'])
 def tao_ket_qua(p):
     kq=lay_ket_qua(p); ds=[]
     for diem,j in kq[:5]:
-        ds.append({'ten':bot.VI_BENH.get(bot.BENH[j],bot.BENH[j]),'ten_goc':bot.BENH[j],'diem':round(diem*100,2)})
-    return {'loai':'ket_qua','trieu_chung_co':[bot.ten_tc(i) for i in sorted(p['co'])], 'trieu_chung_khong':[bot.ten_tc(i) for i in sorted(p['khong'])], 'danh_sach_benh':ds,'canh_bao':p['canh_bao'],'loi_khuyen':'Điểm là mức độ phù hợp tương đối trong nhóm bệnh của mô hình, không phải xác suất mắc bệnh thực tế hay chẩn đoán. Hãy liên hệ cơ sở y tế để được thăm khám.'}
+        ds.append({'ten':bot.VI_BENH.get(bot.BENH[j],bot.BENH[j]),'ten_goc':bot.BENH[j],'diem':round(diem*100,2),**bot.thong_tin_tuoi(bot.BENH[j],p['tuoi'],p['gioi'])})
+    return {'loai':'ket_qua','trieu_chung_co':[bot.ten_tc(i) for i in sorted(p['co'])], 'trieu_chung_khong':[bot.ten_tc(i) for i in sorted(p['khong'])], 'danh_sach_benh':ds,'nhom_tuoi_nguoi_dung':bot.nhom_tuoi(p['tuoi']),'canh_bao':p['canh_bao'],'muc_canh_bao':p['muc_canh_bao'],'loi_khuyen':'Điểm là mức độ phù hợp tương đối trong nhóm bệnh của mô hình, không phải xác suất mắc bệnh thực tế hay chẩn đoán. Hãy liên hệ cơ sở y tế để được thăm khám.'}
 def tiep_tuc(p):
     kq=lay_ket_qua(p);p['da_hoi'].update(p['co']|p['khong'])
     if p['so_cau_hoi']>=SO_CAU_HOI_TOI_DA:return tao_ket_qua(p)
@@ -28,7 +28,9 @@ def tiep_tuc(p):
 def xu_ly(p,text):
     co,khong=bot.trich(text)
     p['co'].update(co);p['khong'].update(khong);p['co']-=p['khong']
-    if bot.canh_bao(p['co'],text):p['canh_bao']=True
+    muc=bot.phan_loai_canh_bao(text)
+    if muc=='khan_cap':p['canh_bao']=True
+    if muc and (p['muc_canh_bao'] is None or muc=='khan_cap'):p['muc_canh_bao']=muc
     if not p['co'] and not p['khong']:
         return {'loai':'chua_hieu','tin_nhan':"Mình chưa nhận diện được triệu chứng. Bạn thử viết ngắn gọn như: sốt, ho, đau họng, nghẹt mũi hoặc khó thở nhé."}
     return tiep_tuc(p)
