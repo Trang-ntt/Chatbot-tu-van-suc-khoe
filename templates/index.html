@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Trợ lý sức khỏe</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <div class="logo">✚</div>
+        <div>
+          <h1>Trợ lý sức khỏe</h1>
+          <p>Phân tích triệu chứng sơ bộ</p>
+        </div>
+        <span class="status">● Đang hoạt động</span>
+      </header>
+      <section class="notice">
+        <b>Lưu ý:</b> Công cụ chỉ hỗ trợ tham khảo, không thay thế bác sĩ hoặc
+        chẩn đoán y khoa. Nếu khó thở, đau ngực dữ dội, bất tỉnh hoặc co giật,
+        hãy gọi 115/đến cấp cứu.
+      </section>
+      <section id="setup" class="setup">
+        <h2>Bắt đầu trò chuyện</h2>
+        <p>Cho mình biết một vài thông tin cơ bản.</p>
+        <label for="age">Tuổi</label
+        ><input
+          id="age"
+          type="number"
+          min="1"
+          max="119"
+          placeholder="Ví dụ: 22"
+        /><label for="sex">Giới tính</label
+        ><select id="sex">
+          <option value="">-- Chọn giới tính --</option>
+          <option value="nam">Nam</option>
+          <option value="nu">Nữ</option></select
+        ><button id="start">Bắt đầu</button>
+        <p id="setupError" class="error"></p>
+      </section>
+      <section id="chat" class="chat hidden">
+        <div id="messages" class="messages">
+          <div class="bubble bot">
+            Xin chào! Bạn hãy mô tả những triệu chứng mình đang gặp nhé.
+          </div>
+        </div>
+        <form id="chatForm">
+          <input
+            id="message"
+            autocomplete="off"
+            placeholder="Ví dụ: Tôi bị sốt, ho và đau họng..."
+          /><button type="submit">Gửi</button>
+        </form>
+        <button id="reset" class="reset">Bắt đầu cuộc trò chuyện mới</button>
+      </section>
+      <footer>
+        Dữ liệu hỗ trợ sàng lọc sơ bộ · Không dùng kết quả để tự điều trị
+      </footer>
+    </main>
+    <script src="/static/chat.js"></script>
+  </body>
+</html>
