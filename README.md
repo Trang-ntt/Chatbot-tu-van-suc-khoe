@@ -15,7 +15,6 @@ Mục tiêu của dự án là xây dựng một hệ thống **HealthBot thốn
 
 - **Python**
 - **FastAPI**
-- **Rasa**
 - **SQLite / SQL Server** tùy cấu hình database
 - **JWT** cho xác thực người dùng
 - **HTML / CSS / JavaScript** cho giao diện
