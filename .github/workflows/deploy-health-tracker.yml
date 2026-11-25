@@ -46,7 +46,7 @@ jobs:
         run: python -c "import sys; sys.path.insert(0, '..'); from main import app; print(app.title)"
   deploy:
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Render deployment when configured
