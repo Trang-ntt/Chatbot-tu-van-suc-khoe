@@ -85,9 +85,9 @@ def test_csv_import_uses_validation_and_reports_skipped_rows(tmp_path, monkeypat
     with TestClient(app) as client:
         headers = login(client, "csvuser")
         csv_data = (
-            "metric,value,secondary_value,unit,measured_at,note\\n"
-            "weight,62,,kg,2026-11-20T08:00:00+00:00,synthetic\\n"
-            "blood_pressure,120,,mmHg,2026-11-20T08:00:00+00:00,missing diastolic\\n"
+            "metric,value,secondary_value,unit,measured_at,note\n"
+            "weight,62,,kg,2026-11-20T08:00:00+00:00,synthetic\n"
+            "blood_pressure,120,,mmHg,2026-11-20T08:00:00+00:00,missing diastolic\n"
         )
         response = client.post("/api/metrics/import-csv", headers=headers, files={
             "file": ("sample.csv", csv_data.encode(), "text/csv")
