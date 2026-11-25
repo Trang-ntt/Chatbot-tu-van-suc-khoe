@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 import os, io, csv
 import bcrypt, jwt
 from dotenv import load_dotenv
@@ -41,7 +41,7 @@ class Profile(BaseModel):
     full_name:str=""
     birth_date:str=""
     sex:str=""
-    height_cm:float|None=None
+    height_cm:float|None=Field(default=None,gt=0,le=250)
     medical_history:str=""
     health_goals:str=""
 class Measurement(BaseModel):
@@ -63,12 +63,12 @@ class Limit(BaseModel):
     context:str=Field(default="",max_length=500)
 class Goal(BaseModel):
     metric:str
-    target_value:float
+    target_value:float=Field(gt=0)
     unit:str=""
 
 class Reminder(BaseModel):
     reminder_type:str
-    title:str
+    title:str=Field(min_length=1,max_length=160)
     due_at:str
     repeat_rule:str="none"
 class ShareRequest(BaseModel):
@@ -117,10 +117,24 @@ def update_user_role(user_id:int,x:RoleUpdate,u=Depends(current_user)):
 @app.get("/api/profile")
 def get_profile(u=Depends(only_user)):
     with connect() as db: r=db.execute("SELECT * FROM profiles WHERE user_id=?",(u["id"],)).fetchone()
-    return dict(r) if r else {}
+    result=dict(r) if r else {}
+    result["age"] = None
+    if result.get("birth_date"):
+        try:
+            born=date.fromisoformat(result["birth_date"])
+            today=date.today()
+            result["age"]=today.year-born.year-((today.month,today.day)<(born.month,born.day))
+        except ValueError:
+            result["age"]=None
+    return result
 
 @app.put("/api/profile")
 def put_profile(x:Profile,u=Depends(only_user)):
+    if x.sex not in {"","Nam","Nữ","Khác","Không muốn trả lời"}: raise HTTPException(400,"Giới tính không hợp lệ.")
+    if x.birth_date:
+        try:
+            if date.fromisoformat(x.birth_date)>date.today(): raise HTTPException(400,"Ngày sinh không thể ở tương lai.")
+        except ValueError: raise HTTPException(400,"Ngày sinh phải theo định dạng YYYY-MM-DD.")
     with connect() as db:
         db.execute("""INSERT INTO profiles VALUES(?,?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET
         full_name=excluded.full_name,birth_date=excluded.birth_date,sex=excluded.sex,height_cm=excluded.height_cm,
@@ -254,6 +268,9 @@ def trends(metric:str,period:str="month",u=Depends(only_user)):
 @app.post("/api/reminders")
 def add_reminder(x:Reminder,u=Depends(only_user)):
     if x.reminder_type not in {"measure","medicine","exercise","other"}: raise HTTPException(400,"Loại nhắc không hợp lệ.")
+    if x.repeat_rule not in {"none","daily","weekly"}: raise HTTPException(400,"Chu kỳ nhắc không hợp lệ.")
+    try: datetime.fromisoformat(x.due_at.replace("Z","+00:00"))
+    except ValueError: raise HTTPException(400,"Thời điểm nhắc phải ở dạng ISO.")
     with connect() as db: c=db.execute("INSERT INTO reminders(user_id,reminder_type,title,due_at,repeat_rule) VALUES(?,?,?,?,?)",(u["id"],x.reminder_type,x.title,x.due_at,x.repeat_rule))
     return {"id":c.lastrowid}
 
