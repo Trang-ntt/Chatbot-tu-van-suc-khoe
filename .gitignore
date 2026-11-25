@@ -2,9 +2,9 @@
 __pycache__/
 *.pyc
 *.db
-.rasa/
+*.sqlite
+*.sqlite3
+.pytest_cache/
 venv/
 .venv/
-.venv-rasa/
 .idea/
-rasa/models/

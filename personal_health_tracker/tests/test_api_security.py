@@ -1,0 +1,157 @@
+import bcrypt
+from fastapi.testclient import TestClient
+from app import db
+from app.main import app
+
+def make_user(conn, username, role="user", password="Password123!"):
+    return conn.execute(
+        "INSERT INTO users(username,password_hash,role) VALUES(?,?,?)",
+        (username, bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode(), role)
+    ).lastrowid
+
+def login(client, username, password="Password123!"):
+    response = client.post("/api/auth/login", json={"username": username, "password": password})
+    assert response.status_code == 200
+    return {"Authorization": "Bearer " + response.json()["access_token"]}
+
+def test_viewer_requires_scope_and_consent_and_can_be_revoked(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", str(tmp_path / "test.db"))
+    db.init_db()
+    with db.connect() as conn:
+        owner = make_user(conn, "owner")
+        viewer = make_user(conn, "viewer", "viewer")
+        conn.execute("INSERT INTO profiles(user_id,full_name) VALUES(?,?)", (owner, "Demo Owner"))
+        conn.execute(
+            "INSERT INTO metrics(user_id,metric,value,unit,measured_at) VALUES(?,?,?,?,?)",
+            (owner, "weight", 60.0, "kg", "2026-11-20T08:00:00+00:00")
+        )
+    with TestClient(app) as client:
+        headers = login(client, "viewer")
+        assert client.get(f"/api/shared/{owner}/metrics", headers=headers).status_code == 403
+        with db.connect() as conn:
+            share_id = conn.execute(
+                "INSERT INTO shares(owner_id,viewer_id,scope) VALUES(?,?,?)",
+                (owner, viewer, "metrics")
+            ).lastrowid
+        assert client.get(f"/api/shared/{owner}/metrics", headers=headers).status_code == 200
+        assert client.get(f"/api/shared/{owner}/profile", headers=headers).status_code == 403
+        with db.connect() as conn:
+            conn.execute("UPDATE shares SET scope='profile_and_metrics' WHERE id=?", (share_id,))
+        assert client.get(f"/api/shared/{owner}/profile", headers=headers).status_code == 200
+        with db.connect() as conn:
+            conn.execute("UPDATE shares SET revoked_at=CURRENT_TIMESTAMP WHERE id=?", (share_id,))
+        assert client.get(f"/api/shared/{owner}/metrics", headers=headers).status_code == 403
+
+def test_blood_pressure_secondary_threshold_creates_alert(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", str(tmp_path / "bp.db"))
+    db.init_db()
+    with db.connect() as conn:
+        make_user(conn, "patient")
+    with TestClient(app) as client:
+        headers = login(client, "patient")
+        threshold = client.post("/api/thresholds", headers=headers, json={
+            "metric": "blood_pressure", "min_value": 90, "max_value": 140,
+            "min_secondary": 60, "max_secondary": 80, "sudden_change_pct": 20,
+            "source_name": "WHO reference", "source_url": "https://www.who.int/",
+            "context": "Demo configuration only"
+        })
+        assert threshold.status_code == 200, threshold.text
+        saved = client.post("/api/metrics", headers=headers, json={
+            "metric": "blood_pressure", "value": 120, "secondary_value": 90,
+            "unit": "mmHg", "measured_at": "2026-11-20T08:00:00+00:00"
+        })
+        assert saved.status_code == 200, saved.text
+        alerts = client.get("/api/alerts", headers=headers).json()
+        assert any(a["alert_type"] == "threshold" for a in alerts)
+
+def test_admin_can_assign_viewer_role_but_cannot_read_health_data(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", str(tmp_path / "roles.db"))
+    db.init_db()
+    with db.connect() as conn:
+        admin = make_user(conn, "admin", "admin")
+        target = make_user(conn, "target")
+    with TestClient(app) as client:
+        headers = login(client, "admin")
+        changed = client.put(f"/api/admin/users/{target}/role", headers=headers, json={"role": "viewer"})
+        assert changed.status_code == 200, changed.text
+        assert client.get("/api/profile", headers=headers).status_code == 403
+        assert client.put(f"/api/admin/users/{admin}/role", headers=headers, json={"role": "admin"}).status_code == 400
+
+def test_csv_import_uses_validation_and_reports_skipped_rows(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", str(tmp_path / "csv.db"))
+    db.init_db()
+    with db.connect() as conn:
+        make_user(conn, "csvuser")
+    with TestClient(app) as client:
+        headers = login(client, "csvuser")
+        csv_data = (
+            "metric,value,secondary_value,unit,measured_at,note\n"
+            "weight,62,,kg,2026-11-20T08:00:00+00:00,synthetic\n"
+            "blood_pressure,120,,mmHg,2026-11-20T08:00:00+00:00,missing diastolic\n"
+        )
+        response = client.post("/api/metrics/import-csv", headers=headers, files={
+            "file": ("sample.csv", csv_data.encode(), "text/csv")
+        })
+        assert response.status_code == 200, response.text
+        assert response.json() == {"inserted": 1, "skipped": 1}
+
+def test_home_health_and_both_report_formats(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", str(tmp_path / "reports.db"))
+    db.init_db()
+    with db.connect() as conn:
+        make_user(conn, "reportuser")
+        user_id = conn.execute("SELECT id FROM users WHERE username='reportuser'").fetchone()["id"]
+        conn.execute(
+            "INSERT INTO metrics(user_id,metric,value,unit,measured_at,note) VALUES(?,?,?,?,?,?)",
+            (user_id, "weight", 61.5, "kg", "2026-11-20T08:00:00+00:00", "synthetic")
+        )
+    with TestClient(app) as client:
+        assert "HealthTrack" in client.get("/").text
+        assert client.get("/api/health").json()["status"] == "ok"
+        headers = login(client, "reportuser")
+        xlsx = client.get("/api/reports/export.xlsx", headers=headers)
+        pdf = client.get("/api/reports/export.pdf", headers=headers)
+        assert xlsx.status_code == 200 and xlsx.content.startswith(b"PK")
+        assert pdf.status_code == 200 and pdf.content.startswith(b"%PDF")
+
+def test_registration_creates_user_role(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", str(tmp_path / "register.db"))
+    db.init_db()
+    with TestClient(app) as client:
+        response = client.post("/api/auth/register", json={"username":"newperson","password":"Password123!"})
+        assert response.status_code == 200
+        headers = login(client, "newperson", "Password123!")
+        assert client.get("/api/me", headers=headers).json()["role"] == "user"
+
+def test_profile_computes_age_and_rejects_future_birth_date(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", str(tmp_path / "profile.db"))
+    db.init_db()
+    with db.connect() as conn:
+        make_user(conn, "profileuser")
+    with TestClient(app) as client:
+        headers = login(client, "profileuser")
+        saved = client.put("/api/profile", headers=headers, json={
+            "full_name":"Demo", "birth_date":"2000-01-01", "sex":"Nữ",
+            "height_cm":160, "medical_history":"synthetic", "health_goals":"test"
+        })
+        assert saved.status_code == 200
+        assert isinstance(client.get("/api/profile", headers=headers).json()["age"], int)
+        future = client.put("/api/profile", headers=headers, json={"birth_date":"2999-01-01"})
+        assert future.status_code == 400
+
+def test_reminder_validates_schedule_and_saves_repeat_rule(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", str(tmp_path / "reminders.db"))
+    db.init_db()
+    with db.connect() as conn:
+        make_user(conn, "reminderuser")
+    with TestClient(app) as client:
+        headers = login(client, "reminderuser")
+        bad = client.post("/api/reminders", headers=headers, json={
+            "reminder_type":"medicine", "title":"Demo", "due_at":"not-a-date", "repeat_rule":"daily"
+        })
+        assert bad.status_code == 400
+        good = client.post("/api/reminders", headers=headers, json={
+            "reminder_type":"medicine", "title":"Demo", "due_at":"2026-11-25T08:00:00+00:00", "repeat_rule":"daily"
+        })
+        assert good.status_code == 200
+        assert client.get("/api/reminders", headers=headers).json()[0]["repeat_rule"] == "daily"

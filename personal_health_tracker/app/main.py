@@ -1,0 +1,386 @@
+from datetime import date, datetime, timedelta, timezone
+import os, io, csv
+import bcrypt, jwt
+from dotenv import load_dotenv
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
+from openpyxl import Workbook
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from .db import connect, init_db
+from .analytics import analyze_series
+from .seed_demo import seed
+
+load_dotenv()
+SECRET=os.getenv("JWT_SECRET","local-development-secret-not-for-deployment")
+TOKEN_EXPIRE_MINUTES=max(5,int(os.getenv("TOKEN_EXPIRE_MINUTES","720")))
+if len(SECRET)<32: raise RuntimeError("JWT_SECRET must contain at least 32 characters.")
+security=HTTPBearer()
+app=FastAPI(title="Personal Health Tracker",description="Dữ liệu giả lập; không chẩn đoán.")
+METRICS={"blood_pressure","weight","glucose","heart_rate","sleep"}
+
+@app.on_event("startup")
+def startup(): seed()
+
+def current_user(c:HTTPAuthorizationCredentials=Depends(security)):
+    try: p=jwt.decode(c.credentials,SECRET,algorithms=["HS256"])
+    except jwt.PyJWTError: raise HTTPException(401,"Token không hợp lệ.")
+    with connect() as db: u=db.execute("SELECT id,username,role,active FROM users WHERE id=?",(p["sub"],)).fetchone()
+    if not u or not u["active"]: raise HTTPException(401,"Tài khoản không hoạt động.")
+    return dict(u)
+
+def only_user(u=Depends(current_user)):
+    if u["role"]!="user": raise HTTPException(403,"Chức năng dành cho người dùng.")
+    return u
+
+class Credentials(BaseModel):
+    username:str=Field(min_length=3,max_length=40)
+    password:str=Field(min_length=8,max_length=100)
+class Profile(BaseModel):
+    full_name:str=""
+    birth_date:str=""
+    sex:str=""
+    height_cm:float|None=Field(default=None,gt=0,le=250)
+    medical_history:str=""
+    health_goals:str=""
+class Measurement(BaseModel):
+    metric:str
+    value:float=Field(gt=0)
+    secondary_value:float|None=Field(default=None,gt=0)
+    unit:str=Field(min_length=1,max_length=20)
+    measured_at:str
+    note:str=Field(default="",max_length=500)
+class Limit(BaseModel):
+    metric:str
+    min_value:float|None=None
+    max_value:float|None=None
+    min_secondary:float|None=None
+    max_secondary:float|None=None
+    sudden_change_pct:float=Field(default=20,gt=0,le=1000)
+    source_name:str=Field(min_length=2,max_length=120)
+    source_url:str=Field(min_length=8,max_length=500)
+    context:str=Field(default="",max_length=500)
+class Goal(BaseModel):
+    metric:str
+    target_value:float=Field(gt=0)
+    unit:str=""
+
+class Reminder(BaseModel):
+    reminder_type:str
+    title:str=Field(min_length=1,max_length=160)
+    due_at:str
+    repeat_rule:str="none"
+class ShareRequest(BaseModel):
+    viewer_username:str
+    scope:str="metrics"
+    consent:bool=False
+
+class RoleUpdate(BaseModel):
+    role:str
+
+@app.get("/api/health")
+def health(): return {"status":"ok","database":"SQLite","demo_data_only":True}
+
+@app.post("/api/auth/register")
+def register(x:Credentials):
+    with connect() as db:
+        if db.execute("SELECT id FROM users WHERE username=?",(x.username,)).fetchone(): raise HTTPException(409,"Tên đăng nhập đã tồn tại.")
+        cur=db.execute("INSERT INTO users(username,password_hash,role) VALUES(?,?,?)",(x.username,bcrypt.hashpw(x.password.encode(),bcrypt.gensalt()).decode(),"user"))
+        db.execute("INSERT INTO profiles(user_id) VALUES(?)",(cur.lastrowid,))
+    return {"message":"Đăng ký thành công."}
+
+@app.post("/api/auth/login")
+def login(x:Credentials):
+    with connect() as db: u=db.execute("SELECT * FROM users WHERE username=? AND active=1",(x.username,)).fetchone()
+    if not u or not bcrypt.checkpw(x.password.encode(),u["password_hash"].encode()): raise HTTPException(401,"Sai tài khoản hoặc mật khẩu.")
+    token=jwt.encode({"sub":str(u["id"]),"exp":datetime.now(timezone.utc)+timedelta(minutes=TOKEN_EXPIRE_MINUTES)},SECRET,algorithm="HS256")
+    return {"access_token":token,"token_type":"bearer","role":u["role"],"username":u["username"]}
+
+@app.get("/api/me")
+def me(u=Depends(current_user)): return {k:u[k] for k in ("id","username","role")}
+
+@app.get("/api/admin/users")
+def users(u=Depends(current_user)):
+    if u["role"]!="admin": raise HTTPException(403,"Chỉ admin.")
+    with connect() as db: return [dict(r) for r in db.execute("SELECT id,username,role,active FROM users").fetchall()]
+
+@app.put("/api/admin/users/{user_id}/role")
+def update_user_role(user_id:int,x:RoleUpdate,u=Depends(current_user)):
+    if u["role"]!="admin": raise HTTPException(403,"Chỉ admin được phân quyền.")
+    if x.role not in {"user","viewer"}: raise HTTPException(400,"Admin chỉ được gán vai trò user hoặc viewer.")
+    with connect() as db:
+        cur=db.execute("UPDATE users SET role=? WHERE id=?",(x.role,user_id))
+        if not cur.rowcount: raise HTTPException(404,"Không tìm thấy tài khoản.")
+    return {"message":"Đã cập nhật vai trò."}
+
+@app.get("/api/profile")
+def get_profile(u=Depends(only_user)):
+    with connect() as db: r=db.execute("SELECT * FROM profiles WHERE user_id=?",(u["id"],)).fetchone()
+    result=dict(r) if r else {}
+    result["age"] = None
+    if result.get("birth_date"):
+        try:
+            born=date.fromisoformat(result["birth_date"])
+            today=date.today()
+            result["age"]=today.year-born.year-((today.month,today.day)<(born.month,born.day))
+        except ValueError:
+            result["age"]=None
+    return result
+
+@app.put("/api/profile")
+def put_profile(x:Profile,u=Depends(only_user)):
+    if x.sex not in {"","Nam","Nữ","Khác","Không muốn trả lời"}: raise HTTPException(400,"Giới tính không hợp lệ.")
+    if x.birth_date:
+        try:
+            if date.fromisoformat(x.birth_date)>date.today(): raise HTTPException(400,"Ngày sinh không thể ở tương lai.")
+        except ValueError: raise HTTPException(400,"Ngày sinh phải theo định dạng YYYY-MM-DD.")
+    with connect() as db:
+        db.execute("""INSERT INTO profiles VALUES(?,?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET
+        full_name=excluded.full_name,birth_date=excluded.birth_date,sex=excluded.sex,height_cm=excluded.height_cm,
+        medical_history=excluded.medical_history,health_goals=excluded.health_goals""",
+        (u["id"],x.full_name,x.birth_date,x.sex,x.height_cm,x.medical_history,x.health_goals))
+    return {"message":"Đã lưu hồ sơ."}
+
+@app.get("/api/metrics")
+def metrics(metric:str|None=None,u=Depends(only_user)):
+    with connect() as db:
+        sql="SELECT * FROM metrics WHERE user_id=?"; args=[u["id"]]
+        if metric:
+            if metric not in METRICS: raise HTTPException(400,"Loại chỉ số không hợp lệ.")
+            sql+=" AND metric=?";args.append(metric)
+        return [dict(r) for r in db.execute(sql+" ORDER BY measured_at DESC",args).fetchall()]
+
+def store_measurement(db,user_id,metric,value,secondary_value,unit,measured_at,note):
+    cur=db.execute("INSERT INTO metrics(user_id,metric,value,secondary_value,unit,measured_at,note) VALUES(?,?,?,?,?,?,?)",(user_id,metric,value,secondary_value,unit,measured_at,note))
+    metric_id=cur.lastrowid
+    limit_row=db.execute("SELECT * FROM thresholds WHERE user_id=? AND metric=?",(user_id,metric)).fetchone()
+    primary_out=bool(limit_row and ((limit_row["min_value"] is not None and value<limit_row["min_value"]) or (limit_row["max_value"] is not None and value>limit_row["max_value"])))
+    secondary_out=bool(limit_row and secondary_value is not None and ((limit_row["min_secondary"] is not None and secondary_value<limit_row["min_secondary"]) or (limit_row["max_secondary"] is not None and secondary_value>limit_row["max_secondary"])))
+    if primary_out or secondary_out:
+        label="tâm thu/tâm trương" if metric=="blood_pressure" else metric
+        db.execute("INSERT INTO alerts(user_id,metric,metric_id,alert_type,message,severity) VALUES(?,?,?,?,?,?)",(user_id,metric,metric_id,"threshold",f"Giá trị {label} vượt ngưỡng bạn đã cấu hình. Đo lại đúng cách; nếu có dấu hiệu nghiêm trọng, hãy liên hệ cơ sở y tế/cấp cứu.","warning"))
+    prev=db.execute("SELECT value,secondary_value FROM metrics WHERE user_id=? AND metric=? AND id<>? ORDER BY measured_at DESC,id DESC LIMIT 1",(user_id,metric,metric_id)).fetchone()
+    pct=limit_row["sudden_change_pct"] if limit_row else 20
+    changed=bool(prev and prev["value"] not in (None,0) and abs(value-prev["value"])/abs(prev["value"])*100>=pct)
+    if metric=="blood_pressure" and prev and secondary_value and prev["secondary_value"] not in (None,0):
+        changed=changed or abs(secondary_value-prev["secondary_value"])/abs(prev["secondary_value"])*100>=pct
+    if changed:
+        db.execute("INSERT INTO alerts(user_id,metric,metric_id,alert_type,message,severity) VALUES(?,?,?,?,?,?)",(user_id,metric,metric_id,"change","Chỉ số thay đổi đột ngột so với lần đo trước; hãy đo lại đúng cách và theo dõi.","warning"))
+    return metric_id
+
+@app.post("/api/metrics")
+def add_metric(x:Measurement,u=Depends(only_user)):
+    if x.metric not in METRICS: raise HTTPException(400,"Loại chỉ số không hợp lệ.")
+    try: datetime.fromisoformat(x.measured_at.replace("Z","+00:00"))
+    except ValueError: raise HTTPException(400,"Thời điểm phải ở dạng ISO.")
+    if x.metric=="blood_pressure" and x.secondary_value is None: raise HTTPException(400,"Huyết áp cần tâm thu và tâm trương.")
+    if x.metric!="blood_pressure" and x.secondary_value is not None: raise HTTPException(400,"Chỉ số này không nhận giá trị phụ.")
+    with connect() as db:
+        metric_id=store_measurement(db,u["id"],x.metric,x.value,x.secondary_value,x.unit,x.measured_at,x.note)
+    return {"id":metric_id,"message":"Đã lưu."}
+
+@app.delete("/api/metrics/{mid}")
+def delete_metric(mid:int,u=Depends(only_user)):
+    with connect() as db:
+        c=db.execute("DELETE FROM metrics WHERE id=? AND user_id=?",(mid,u["id"]))
+        if not c.rowcount: raise HTTPException(404,"Không tìm thấy.")
+    return {"message":"Đã xóa."}
+
+@app.post("/api/metrics/import-csv")
+async def import_csv(file:UploadFile=File(...),u=Depends(only_user)):
+    if not file.filename.lower().endswith(".csv"): raise HTTPException(400,"Chỉ nhận CSV.")
+    raw=await file.read()
+    if len(raw)>2_000_000: raise HTTPException(413,"File quá lớn.")
+    try: rows=csv.DictReader(io.StringIO(raw.decode("utf-8-sig")))
+    except Exception: raise HTTPException(400,"CSV không hợp lệ.")
+    if not rows.fieldnames or not {"metric","value","measured_at"}.issubset(set(rows.fieldnames)):
+        raise HTTPException(400,"CSV cần có các cột metric,value,measured_at.")
+    count=0; skipped=0
+    with connect() as db:
+        for r in rows:
+            try:
+                metric=(r.get("metric") or "").strip()
+                if metric not in METRICS: raise ValueError()
+                measured_at=(r.get("measured_at") or "").strip()
+                datetime.fromisoformat(measured_at.replace("Z","+00:00"))
+                v=float(r["value"]); sv=float(r["secondary_value"]) if (r.get("secondary_value") or "").strip() else None
+                if v<=0 or (sv is not None and sv<=0): raise ValueError()
+                if metric=="blood_pressure" and sv is None: raise ValueError()
+                if metric!="blood_pressure" and sv is not None: raise ValueError()
+                store_measurement(db,u["id"],metric,v,sv,(r.get("unit") or "").strip(),measured_at,(r.get("note") or "CSV")[:500])
+                count+=1
+            except (ValueError,KeyError,TypeError):
+                skipped+=1
+    return {"inserted":count,"skipped":skipped}
+
+@app.post("/api/thresholds")
+def set_limit(x:Limit,u=Depends(only_user)):
+    if x.metric not in METRICS: raise HTTPException(400,"Loại chỉ số không hợp lệ.")
+    if all(v is None for v in (x.min_value,x.max_value,x.min_secondary,x.max_secondary)): raise HTTPException(400,"Cần nhập ít nhất một ngưỡng.")
+    if x.min_value is not None and x.max_value is not None and x.min_value>=x.max_value: raise HTTPException(400,"Ngưỡng dưới phải nhỏ hơn ngưỡng trên.")
+    if x.min_secondary is not None and x.max_secondary is not None and x.min_secondary>=x.max_secondary: raise HTTPException(400,"Ngưỡng phụ dưới phải nhỏ hơn ngưỡng phụ trên.")
+    if x.metric!="blood_pressure" and (x.min_secondary is not None or x.max_secondary is not None): raise HTTPException(400,"Chỉ huyết áp mới có ngưỡng phụ.")
+    if not x.source_url.startswith(("https://","http://")): raise HTTPException(400,"URL nguồn phải bắt đầu bằng http:// hoặc https://.")
+    with connect() as db:
+        db.execute("""INSERT INTO thresholds(user_id,metric,min_value,max_value,min_secondary,max_secondary,sudden_change_pct,source_name,source_url,context)
+        VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(user_id,metric) DO UPDATE SET min_value=excluded.min_value,max_value=excluded.max_value,
+        min_secondary=excluded.min_secondary,max_secondary=excluded.max_secondary,sudden_change_pct=excluded.sudden_change_pct,
+        source_name=excluded.source_name,source_url=excluded.source_url,context=excluded.context""",
+        (u["id"],x.metric,x.min_value,x.max_value,x.min_secondary,x.max_secondary,x.sudden_change_pct,x.source_name,x.source_url,x.context))
+    return {"message":"Đã lưu ngưỡng và nguồn."}
+
+@app.get("/api/thresholds")
+def limits(u=Depends(only_user)):
+    with connect() as db: return [dict(r) for r in db.execute("SELECT * FROM thresholds WHERE user_id=?",(u["id"],)).fetchall()]
+
+@app.get("/api/alerts")
+def alerts(u=Depends(only_user)):
+    with connect() as db: return [dict(r) for r in db.execute("SELECT * FROM alerts WHERE user_id=? ORDER BY created_at DESC",(u["id"],)).fetchall()]
+
+@app.get("/api/goals")
+def get_goals(u=Depends(only_user)):
+    with connect() as db:
+        return [dict(r) for r in db.execute("SELECT * FROM metric_goals WHERE user_id=?",(u["id"],)).fetchall()]
+
+@app.post("/api/goals")
+def set_goal(x:Goal,u=Depends(only_user)):
+    if x.metric not in METRICS: raise HTTPException(400,"Loại chỉ số không hợp lệ.")
+    with connect() as db:
+        db.execute("INSERT INTO metric_goals(user_id,metric,target_value,unit) VALUES(?,?,?,?) ON CONFLICT(user_id,metric) DO UPDATE SET target_value=excluded.target_value,unit=excluded.unit",(u["id"],x.metric,x.target_value,x.unit))
+    return {"message":"Đã lưu mục tiêu."}
+
+@app.get("/api/analytics/trends")
+def trends(metric:str,period:str="month",u=Depends(only_user)):
+    if metric not in METRICS or period not in {"day","week","month","all"}: raise HTTPException(400,"Tham số không hợp lệ.")
+    cutoff={"day":"-1 day","week":"-7 days","month":"-30 days"}.get(period)
+    with connect() as db:
+        sql="SELECT value,secondary_value,unit,measured_at FROM metrics WHERE user_id=? AND metric=?";args=[u["id"],metric]
+        if cutoff: sql+=" AND measured_at>=datetime('now',?)";args.append(cutoff)
+        rows=[dict(r) for r in db.execute(sql+" ORDER BY measured_at",args).fetchall()]
+    result=analyze_series([r["value"] for r in rows])
+    with connect() as db:
+        goal=db.execute("SELECT target_value,unit FROM metric_goals WHERE user_id=? AND metric=?",(u["id"],metric)).fetchone()
+    result["goal"] = dict(goal) if goal else None
+    if metric=="blood_pressure": result["diastolic"]=analyze_series([r["secondary_value"] for r in rows if r["secondary_value"] is not None])
+    return {"metric":metric,"records":rows,"analysis":result}
+
+@app.post("/api/reminders")
+def add_reminder(x:Reminder,u=Depends(only_user)):
+    if x.reminder_type not in {"measure","medicine","exercise","other"}: raise HTTPException(400,"Loại nhắc không hợp lệ.")
+    if x.repeat_rule not in {"none","daily","weekly"}: raise HTTPException(400,"Chu kỳ nhắc không hợp lệ.")
+    try: datetime.fromisoformat(x.due_at.replace("Z","+00:00"))
+    except ValueError: raise HTTPException(400,"Thời điểm nhắc phải ở dạng ISO.")
+    with connect() as db: c=db.execute("INSERT INTO reminders(user_id,reminder_type,title,due_at,repeat_rule) VALUES(?,?,?,?,?)",(u["id"],x.reminder_type,x.title,x.due_at,x.repeat_rule))
+    return {"id":c.lastrowid}
+
+@app.get("/api/reminders")
+def reminders(u=Depends(only_user)):
+    with connect() as db: return [dict(r) for r in db.execute("SELECT * FROM reminders WHERE user_id=? AND active=1 ORDER BY due_at",(u["id"],)).fetchall()]
+
+@app.delete("/api/reminders/{rid}")
+def remove_reminder(rid:int,u=Depends(only_user)):
+    with connect() as db: c=db.execute("UPDATE reminders SET active=0 WHERE id=? AND user_id=?",(rid,u["id"]))
+    if not c.rowcount: raise HTTPException(404,"Không tìm thấy.")
+    return {"message":"Đã tắt."}
+
+@app.post("/api/shares")
+def share(x:ShareRequest,u=Depends(only_user)):
+    if not x.consent: raise HTTPException(400,"Bạn phải xác nhận đồng ý.")
+    if x.scope not in {"metrics","profile_and_metrics"}: raise HTTPException(400,"Phạm vi chia sẻ không hợp lệ.")
+    with connect() as db:
+        v=db.execute("SELECT id,role FROM users WHERE username=? AND active=1",(x.viewer_username,)).fetchone()
+        if not v or v["role"]!="viewer": raise HTTPException(404,"Không tìm thấy tài khoản viewer.")
+        db.execute("INSERT INTO shares(owner_id,viewer_id,scope,revoked_at) VALUES(?,?,?,NULL) ON CONFLICT(owner_id,viewer_id,scope) DO UPDATE SET consented_at=CURRENT_TIMESTAMP,revoked_at=NULL",(u["id"],v["id"],x.scope))
+    return {"message":"Đã chia sẻ theo sự đồng ý."}
+
+@app.get("/api/shares")
+def shares(u=Depends(only_user)):
+    with connect() as db: return [dict(r) for r in db.execute("SELECT s.*,v.username viewer_username FROM shares s JOIN users v ON v.id=s.viewer_id WHERE owner_id=?",(u["id"],)).fetchall()]
+
+@app.delete("/api/shares/{sid}")
+def revoke(sid:int,u=Depends(only_user)):
+    with connect() as db: c=db.execute("UPDATE shares SET revoked_at=CURRENT_TIMESTAMP WHERE id=? AND owner_id=? AND revoked_at IS NULL",(sid,u["id"]))
+    if not c.rowcount: raise HTTPException(404,"Không có quyền chia sẻ.")
+    return {"message":"Đã thu hồi."}
+
+@app.get("/api/shared/mine")
+def my_shared_owners(u=Depends(current_user)):
+    if u["role"]!="viewer": raise HTTPException(403,"Chỉ viewer.")
+    with connect() as db:
+        return [dict(r) for r in db.execute("SELECT s.owner_id,s.scope,s.consented_at FROM shares s WHERE s.viewer_id=? AND s.revoked_at IS NULL",(u["id"],)).fetchall()]
+
+@app.get("/api/shared/{owner_id}/metrics")
+def shared_metrics(owner_id:int,u=Depends(current_user)):
+    if u["role"]!="viewer": raise HTTPException(403,"Chỉ viewer.")
+    with connect() as db:
+        s=db.execute("SELECT scope FROM shares WHERE owner_id=? AND viewer_id=? AND revoked_at IS NULL",(owner_id,u["id"])).fetchone()
+        if not s or s["scope"] not in {"metrics","profile_and_metrics"}: raise HTTPException(403,"Chưa được chủ tài khoản cho phép.")
+        return [dict(r) for r in db.execute("SELECT metric,value,secondary_value,unit,measured_at FROM metrics WHERE user_id=? ORDER BY measured_at DESC",(owner_id,)).fetchall()]
+
+@app.get("/api/shared/{owner_id}/profile")
+def shared_profile(owner_id:int,u=Depends(current_user)):
+    if u["role"]!="viewer": raise HTTPException(403,"Chỉ viewer.")
+    with connect() as db:
+        s=db.execute("SELECT scope FROM shares WHERE owner_id=? AND viewer_id=? AND revoked_at IS NULL",(owner_id,u["id"])).fetchone()
+        if not s or s["scope"]!="profile_and_metrics": raise HTTPException(403,"Chủ tài khoản chưa đồng ý chia sẻ hồ sơ.")
+        p=db.execute("SELECT full_name,birth_date,sex,height_cm,medical_history,health_goals FROM profiles WHERE user_id=?",(owner_id,)).fetchone()
+        return dict(p) if p else {}
+
+@app.get("/api/reports/export.xlsx")
+def export_xlsx(u=Depends(only_user)):
+    with connect() as db: rows=db.execute("SELECT metric,value,secondary_value,unit,measured_at,note FROM metrics WHERE user_id=? ORDER BY measured_at",(u["id"],)).fetchall()
+    w=Workbook();s=w.active;s.title="Health metrics";s.append(["Metric","Value","Secondary value","Unit","Measured at","Note"])
+    for r in rows:s.append(list(r))
+    ai=w.create_sheet("AI methods and sources")
+    ai.append(["Item","Disclosure"])
+    ai.append(["Trend analysis","Moving average (up to 3 samples), ordinary least squares linear regression, Z-score outlier flag (at least 5 samples)."])
+    ai.append(["Limitations","Statistical trend summary only; not a diagnosis, prediction of disease, or treatment recommendation."])
+    ai.append(["AI-assisted content","Code scaffolding and test suggestions were AI-assisted; see docs/AI_USAGE.md for disclosure and team evidence log."])
+    ai.append(["Threshold source - WHO hypertension","https://www.who.int/news-room/fact-sheets/detail/hypertension"])
+    ai.append(["Threshold source - WHO diabetes","https://www.who.int/news-room/fact-sheets/detail/diabetes"])
+    ai.append(["Physical activity - WHO","https://www.who.int/news-room/fact-sheets/detail/physical-activity"])
+    ai.append(["Sleep - CDC","https://www.cdc.gov/sleep/about/index.html"])
+    b=io.BytesIO();w.save(b);b.seek(0)
+    return StreamingResponse(b,media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",headers={"Content-Disposition":"attachment; filename=health_report.xlsx"})
+
+@app.get("/api/reports/export.pdf")
+def export_pdf(u=Depends(only_user)):
+    from fastapi.responses import StreamingResponse
+    buffer=io.BytesIO()
+    with connect() as db:
+        rows=db.execute("SELECT metric,value,secondary_value,unit,measured_at FROM metrics WHERE user_id=? ORDER BY measured_at",(u["id"],)).fetchall()
+    pdf=canvas.Canvas(buffer,pagesize=A4)
+    width,height=A4
+    y=height-45
+    pdf.setFont("Helvetica-Bold",15)
+    pdf.drawString(40,y,"PERSONAL HEALTH SUMMARY")
+    y-=25
+    pdf.setFont("Helvetica",9)
+    pdf.drawString(40,y,"Synthetic demo data - informational only")
+    y-=16
+    pdf.drawString(40,y,"AI: moving average, OLS linear regression and Z-score; see docs/AI_USAGE.md")
+    y-=16
+    pdf.drawString(40,y,"Sources: WHO hypertension/diabetes; CDC sleep. Details in project README.")
+    y-=25
+    for row in rows:
+        line=str(row["measured_at"])[:16]+" | "+str(row["metric"])+": "+str(row["value"])+" "+str(row["unit"])
+        if row["secondary_value"] is not None:
+            line += " / "+str(row["secondary_value"])
+        pdf.drawString(40,y,line[:115])
+        y-=14
+        if y<45:
+            pdf.showPage()
+            pdf.setFont("Helvetica",9)
+            y=height-45
+    pdf.save()
+    buffer.seek(0)
+    return StreamingResponse(buffer,media_type="application/pdf",headers={"Content-Disposition":"attachment; filename=health_report.pdf"})
+
+@app.get("/")
+def home():
+    from pathlib import Path
+    from fastapi.responses import HTMLResponse
+    page = Path(__file__).parent / "static" / "index.html"
+    return HTMLResponse(page.read_text(encoding="utf-8"))

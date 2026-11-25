@@ -187,33 +187,6 @@ def init_db():
 
 
         # ====================================================
-        # CHAT HISTORY
-        # ====================================================
-
-        cur.execute(
-            """
-            CREATE TABLE IF NOT EXISTS ChatHistory
-            (
-                ID INTEGER PRIMARY KEY AUTOINCREMENT,
-
-                UserID INTEGER NOT NULL,
-
-                Message TEXT NOT NULL,
-
-                Response TEXT,
-
-                CreatedAt TEXT
-                    DEFAULT CURRENT_TIMESTAMP,
-
-                FOREIGN KEY(UserID)
-                    REFERENCES Users(UserId)
-                    ON DELETE CASCADE
-            )
-            """
-        )
-
-
-        # ====================================================
         # MEDICATIONS
         # ====================================================
 
@@ -513,14 +486,6 @@ def init_db():
         # ====================================================
         # TẠO INDEX
         # ====================================================
-
-        cur.execute(
-            """
-            CREATE INDEX IF NOT EXISTS
-            idx_chat_user
-            ON ChatHistory(UserID)
-            """
-        )
 
         cur.execute(
             """

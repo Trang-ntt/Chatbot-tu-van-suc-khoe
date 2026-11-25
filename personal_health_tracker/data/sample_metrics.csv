@@ -1,0 +1,6 @@
+metric,value,secondary_value,unit,measured_at,note
+weight,60.5,,kg,2026-11-20T08:00:00+00:00,Dữ liệu giả lập
+glucose,5.2,,mmol/L,2026-11-20T08:10:00+00:00,Dữ liệu giả lập
+blood_pressure,118,76,mmHg,2026-11-20T08:20:00+00:00,Dữ liệu giả lập
+heart_rate,72,,bpm,2026-11-20T08:30:00+00:00,Dữ liệu giả lập
+sleep,7.5,,hour,2026-11-20T09:00:00+00:00,Dữ liệu giả lập
