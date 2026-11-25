@@ -285,6 +285,10 @@ def export_pdf(u=Depends(only_user)):
     y-=25
     pdf.setFont("Helvetica",9)
     pdf.drawString(40,y,"Synthetic demo data - informational only")
+    y-=16
+    pdf.drawString(40,y,"AI: moving average, OLS linear regression and Z-score; see docs/AI_USAGE.md")
+    y-=16
+    pdf.drawString(40,y,"Sources: WHO hypertension/diabetes; CDC sleep. Details in project README.")
     y-=25
     for row in rows:
         line=str(row["measured_at"])[:16]+" | "+str(row["metric"])+": "+str(row["value"])+" "+str(row["unit"])
