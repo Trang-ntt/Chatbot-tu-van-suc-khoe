@@ -448,45 +448,6 @@ def export_mine(user=Depends(current_user)):
 
 
         # ==================================================
-        # 10. LỊCH SỬ CHATBOT
-        # ==================================================
-
-        ws = wb.create_sheet("Chatbot")
-
-        ws.append([
-            "Mã chat",
-            "Tin nhắn người dùng",
-            "Phản hồi AI",
-            "Thời gian"
-        ])
-
-        rows = query(
-            """
-            SELECT
-                ID,
-                Message,
-                Response,
-                CreatedAt
-            FROM ChatHistory
-            WHERE UserID = ?
-            ORDER BY CreatedAt DESC
-            """,
-            (user_id,)
-        )
-
-        for row in rows:
-            ws.append([
-                row.get("ID"),
-                row.get("Message"),
-                row.get("Response"),
-                row.get("CreatedAt")
-            ])
-
-        style_header(ws)
-        auto_width(ws)
-
-
-        # ==================================================
         # 11. TẠO FILE
         # ==================================================
 
