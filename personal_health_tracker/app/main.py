@@ -11,6 +11,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from .db import connect, init_db
 from .analytics import analyze_series
+from .seed_demo import seed
 
 load_dotenv()
 SECRET=os.getenv("JWT_SECRET","local-development-secret-not-for-deployment")
@@ -21,7 +22,7 @@ app=FastAPI(title="Personal Health Tracker",description="Dữ liệu giả lập
 METRICS={"blood_pressure","weight","glucose","heart_rate","sleep"}
 
 @app.on_event("startup")
-def startup(): init_db()
+def startup(): seed()
 
 def current_user(c:HTTPAuthorizationCredentials=Depends(security)):
     try: p=jwt.decode(c.credentials,SECRET,algorithms=["HS256"])
