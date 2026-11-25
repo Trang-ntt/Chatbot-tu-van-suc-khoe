@@ -74,6 +74,9 @@ class ShareRequest(BaseModel):
     scope:str="metrics"
     consent:bool=False
 
+class RoleUpdate(BaseModel):
+    role:str
+
 @app.get("/api/health")
 def health(): return {"status":"ok","database":"SQLite","demo_data_only":True}
 
@@ -99,6 +102,15 @@ def me(u=Depends(current_user)): return {k:u[k] for k in ("id","username","role"
 def users(u=Depends(current_user)):
     if u["role"]!="admin": raise HTTPException(403,"Chỉ admin.")
     with connect() as db: return [dict(r) for r in db.execute("SELECT id,username,role,active FROM users").fetchall()]
+
+@app.put("/api/admin/users/{user_id}/role")
+def update_user_role(user_id:int,x:RoleUpdate,u=Depends(current_user)):
+    if u["role"]!="admin": raise HTTPException(403,"Chỉ admin được phân quyền.")
+    if x.role not in {"user","viewer"}: raise HTTPException(400,"Admin chỉ được gán vai trò user hoặc viewer.")
+    with connect() as db:
+        cur=db.execute("UPDATE users SET role=? WHERE id=?",(x.role,user_id))
+        if not cur.rowcount: raise HTTPException(404,"Không tìm thấy tài khoản.")
+    return {"message":"Đã cập nhật vai trò."}
 
 @app.get("/api/profile")
 def get_profile(u=Depends(only_user)):
@@ -273,13 +285,28 @@ def revoke(sid:int,u=Depends(only_user)):
     if not c.rowcount: raise HTTPException(404,"Không có quyền chia sẻ.")
     return {"message":"Đã thu hồi."}
 
+@app.get("/api/shared/mine")
+def my_shared_owners(u=Depends(current_user)):
+    if u["role"]!="viewer": raise HTTPException(403,"Chỉ viewer.")
+    with connect() as db:
+        return [dict(r) for r in db.execute("SELECT s.owner_id,s.scope,s.consented_at,p.full_name FROM shares s LEFT JOIN profiles p ON p.user_id=s.owner_id WHERE s.viewer_id=? AND s.revoked_at IS NULL",(u["id"],)).fetchall()]
+
 @app.get("/api/shared/{owner_id}/metrics")
 def shared_metrics(owner_id:int,u=Depends(current_user)):
     if u["role"]!="viewer": raise HTTPException(403,"Chỉ viewer.")
     with connect() as db:
-        s=db.execute("SELECT id FROM shares WHERE owner_id=? AND viewer_id=? AND revoked_at IS NULL",(owner_id,u["id"])).fetchone()
-        if not s: raise HTTPException(403,"Chưa được chủ tài khoản cho phép.")
+        s=db.execute("SELECT scope FROM shares WHERE owner_id=? AND viewer_id=? AND revoked_at IS NULL",(owner_id,u["id"])).fetchone()
+        if not s or s["scope"] not in {"metrics","profile_and_metrics"}: raise HTTPException(403,"Chưa được chủ tài khoản cho phép.")
         return [dict(r) for r in db.execute("SELECT metric,value,secondary_value,unit,measured_at FROM metrics WHERE user_id=? ORDER BY measured_at DESC",(owner_id,)).fetchall()]
+
+@app.get("/api/shared/{owner_id}/profile")
+def shared_profile(owner_id:int,u=Depends(current_user)):
+    if u["role"]!="viewer": raise HTTPException(403,"Chỉ viewer.")
+    with connect() as db:
+        s=db.execute("SELECT scope FROM shares WHERE owner_id=? AND viewer_id=? AND revoked_at IS NULL",(owner_id,u["id"])).fetchone()
+        if not s or s["scope"]!="profile_and_metrics": raise HTTPException(403,"Chủ tài khoản chưa đồng ý chia sẻ hồ sơ.")
+        p=db.execute("SELECT full_name,birth_date,sex,height_cm,medical_history,health_goals FROM profiles WHERE user_id=?",(owner_id,)).fetchone()
+        return dict(p) if p else {}
 
 @app.get("/api/reports/export.xlsx")
 def export_xlsx(u=Depends(only_user)):
