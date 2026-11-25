@@ -127,3 +127,33 @@ def test_medication_due_uses_browser_local_time(tmp_path, monkeypatch):
         assert len(due.json()) == 1
         invalid = client.get("/api/medications/due?local_time=bad-time", headers=headers)
         assert invalid.status_code == 400
+
+
+def test_personal_chatbot_analyzes_saved_health_metrics(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", str(tmp_path / "insights.db"))
+    db.init_db()
+    with db.connect() as conn:
+        uid = make_user(conn, "insightuser")
+        conn.execute(
+            "INSERT INTO profiles(user_id,birth_date,sex,health_goals) VALUES(?,?,?,?)",
+            (uid, "1998-06-01", "Nam", "Theo dõi cân nặng")
+        )
+        for value, stamp in ((70, "2026-11-19T08:00:00+00:00"),
+                             (71, "2026-11-20T08:00:00+00:00"),
+                             (72, "2026-11-21T08:00:00+00:00")):
+            conn.execute(
+                "INSERT INTO metrics(user_id,metric,value,unit,measured_at) VALUES(?,?,?,?,?)",
+                (uid, "weight", value, "kg", stamp)
+            )
+    with TestClient(app) as client:
+        headers = auth(client, "insightuser")
+        sid = client.post("/api/assistant/start", headers=headers).json()["session_id"]
+        response = client.post("/api/assistant/message", headers=headers, json={
+            "session_id": sid, "message": "Hãy phân tích xu hướng các chỉ số sức khỏe của tôi"
+        })
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        assert payload["loai"] == "tu_van_ca_nhan"
+        weight = next(item for item in payload["health_insights"] if item["metric"] == "weight")
+        assert weight["trend"] == "tăng"
+        assert weight["record_count"] == 3
