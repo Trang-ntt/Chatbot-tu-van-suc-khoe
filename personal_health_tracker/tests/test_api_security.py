@@ -122,3 +122,36 @@ def test_registration_creates_user_role(tmp_path, monkeypatch):
         assert response.status_code == 200
         headers = login(client, "newperson", "Password123!")
         assert client.get("/api/me", headers=headers).json()["role"] == "user"
+
+def test_profile_computes_age_and_rejects_future_birth_date(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", str(tmp_path / "profile.db"))
+    db.init_db()
+    with db.connect() as conn:
+        make_user(conn, "profileuser")
+    with TestClient(app) as client:
+        headers = login(client, "profileuser")
+        saved = client.put("/api/profile", headers=headers, json={
+            "full_name":"Demo", "birth_date":"2000-01-01", "sex":"Nữ",
+            "height_cm":160, "medical_history":"synthetic", "health_goals":"test"
+        })
+        assert saved.status_code == 200
+        assert isinstance(client.get("/api/profile", headers=headers).json()["age"], int)
+        future = client.put("/api/profile", headers=headers, json={"birth_date":"2999-01-01"})
+        assert future.status_code == 400
+
+def test_reminder_validates_schedule_and_saves_repeat_rule(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", str(tmp_path / "reminders.db"))
+    db.init_db()
+    with db.connect() as conn:
+        make_user(conn, "reminderuser")
+    with TestClient(app) as client:
+        headers = login(client, "reminderuser")
+        bad = client.post("/api/reminders", headers=headers, json={
+            "reminder_type":"medicine", "title":"Demo", "due_at":"not-a-date", "repeat_rule":"daily"
+        })
+        assert bad.status_code == 400
+        good = client.post("/api/reminders", headers=headers, json={
+            "reminder_type":"medicine", "title":"Demo", "due_at":"2026-11-25T08:00:00+00:00", "repeat_rule":"daily"
+        })
+        assert good.status_code == 200
+        assert client.get("/api/reminders", headers=headers).json()[0]["repeat_rule"] == "daily"
