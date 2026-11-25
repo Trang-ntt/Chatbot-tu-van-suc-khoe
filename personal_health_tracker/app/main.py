@@ -125,8 +125,8 @@ def add_metric(x:Measurement,u=Depends(only_user)):
     with connect() as db:
         cur=db.execute("INSERT INTO metrics(user_id,metric,value,secondary_value,unit,measured_at,note) VALUES(?,?,?,?,?,?,?)",(u["id"],x.metric,x.value,x.secondary_value,x.unit,x.measured_at,x.note))
         m=db.execute("SELECT * FROM thresholds WHERE user_id=? AND metric=?",(u["id"],x.metric)).fetchone()
-        if m and x.metric!="blood_pressure" and ((m["min_value"] is not None and x.value<m["min_value"]) or (m["max_value"] is not None and x.value>m["max_value"])):
-            db.execute("INSERT INTO alerts(user_id,metric,metric_id,alert_type,message,severity) VALUES(?,?,?,?,?,?)",(u["id"],x.metric,cur.lastrowid,"threshold","Giá trị vượt ngưỡng bạn đã cài đặt. Kiểm tra lại phép đo và hỏi nhân viên y tế nếu lo ngại.","warning"))
+        if m and ((m["min_value"] is not None and x.value<m["min_value"]) or (m["max_value"] is not None and x.value>m["max_value"])):
+            db.execute("INSERT INTO alerts(user_id,metric,metric_id,alert_type,message,severity) VALUES(?,?,?,?,?,?)",(u["id"],x.metric,cur.lastrowid,"threshold","Giá trị vượt ngưỡng bạn đã cấu hình. Đo lại đúng cách; nếu giá trị rất bất thường hoặc có triệu chứng nghiêm trọng, hãy liên hệ cơ sở y tế/cấp cứu.","warning"))
         prev=db.execute("SELECT value FROM metrics WHERE user_id=? AND metric=? AND id<>? ORDER BY measured_at DESC LIMIT 1",(u["id"],x.metric,cur.lastrowid)).fetchone()
         if prev and prev["value"] and abs(x.value-prev["value"])/abs(prev["value"])*100 >= (m["sudden_change_pct"] if m else 20):
             db.execute("INSERT INTO alerts(user_id,metric,metric_id,alert_type,message,severity) VALUES(?,?,?,?,?,?)",(u["id"],x.metric,cur.lastrowid,"change","Chỉ số thay đổi đột ngột so với lần đo trước; hãy đo lại và theo dõi.","warning"))
@@ -209,6 +209,7 @@ def remove_reminder(rid:int,u=Depends(only_user)):
 @app.post("/api/shares")
 def share(x:ShareRequest,u=Depends(only_user)):
     if not x.consent: raise HTTPException(400,"Bạn phải xác nhận đồng ý.")
+    if x.scope not in {"metrics","profile_and_metrics"}: raise HTTPException(400,"Phạm vi chia sẻ không hợp lệ.")
     with connect() as db:
         v=db.execute("SELECT id,role FROM users WHERE username=? AND active=1",(x.viewer_username,)).fetchone()
         if not v or v["role"]!="viewer": raise HTTPException(404,"Không tìm thấy tài khoản viewer.")
