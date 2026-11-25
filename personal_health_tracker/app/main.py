@@ -7,6 +7,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from openpyxl import Workbook
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 from .db import connect, init_db
 from .analytics import analyze_series
 
@@ -238,6 +240,35 @@ def export_xlsx(u=Depends(only_user)):
     for r in rows:s.append(list(r))
     b=io.BytesIO();w.save(b);b.seek(0)
     return StreamingResponse(b,media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",headers={"Content-Disposition":"attachment; filename=health_report.xlsx"})
+
+@app.get("/api/reports/export.pdf")
+def export_pdf(u=Depends(only_user)):
+    from fastapi.responses import StreamingResponse
+    buffer=io.BytesIO()
+    with connect() as db:
+        rows=db.execute("SELECT metric,value,secondary_value,unit,measured_at FROM metrics WHERE user_id=? ORDER BY measured_at",(u["id"],)).fetchall()
+    pdf=canvas.Canvas(buffer,pagesize=A4)
+    width,height=A4
+    y=height-45
+    pdf.setFont("Helvetica-Bold",15)
+    pdf.drawString(40,y,"PERSONAL HEALTH SUMMARY")
+    y-=25
+    pdf.setFont("Helvetica",9)
+    pdf.drawString(40,y,"Synthetic demo data - informational only")
+    y-=25
+    for row in rows:
+        line=str(row["measured_at"])[:16]+" | "+str(row["metric"])+": "+str(row["value"])+" "+str(row["unit"])
+        if row["secondary_value"] is not None:
+            line += " / "+str(row["secondary_value"])
+        pdf.drawString(40,y,line[:115])
+        y-=14
+        if y<45:
+            pdf.showPage()
+            pdf.setFont("Helvetica",9)
+            y=height-45
+    pdf.save()
+    buffer.seek(0)
+    return StreamingResponse(buffer,media_type="application/pdf",headers={"Content-Disposition":"attachment; filename=health_report.pdf"})
 
 @app.get("/")
 def home():
