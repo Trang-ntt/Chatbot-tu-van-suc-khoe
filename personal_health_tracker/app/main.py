@@ -289,7 +289,7 @@ def revoke(sid:int,u=Depends(only_user)):
 def my_shared_owners(u=Depends(current_user)):
     if u["role"]!="viewer": raise HTTPException(403,"Chỉ viewer.")
     with connect() as db:
-        return [dict(r) for r in db.execute("SELECT s.owner_id,s.scope,s.consented_at,p.full_name FROM shares s LEFT JOIN profiles p ON p.user_id=s.owner_id WHERE s.viewer_id=? AND s.revoked_at IS NULL",(u["id"],)).fetchall()]
+        return [dict(r) for r in db.execute("SELECT s.owner_id,s.scope,s.consented_at FROM shares s WHERE s.viewer_id=? AND s.revoked_at IS NULL",(u["id"],)).fetchall()]
 
 @app.get("/api/shared/{owner_id}/metrics")
 def shared_metrics(owner_id:int,u=Depends(current_user)):
