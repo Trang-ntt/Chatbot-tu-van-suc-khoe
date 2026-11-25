@@ -325,8 +325,12 @@ def deactivate_medication(medication_id: int, u=Depends(only_user)):
 
 
 @router.get("/api/medications/due")
-def due_medications(u=Depends(only_user)):
-    now = datetime.now()
+def due_medications(local_time: Optional[str] = None, u=Depends(only_user)):
+    try:
+        # Browser supplies local wall-clock time so reminders work when the host runs in UTC.
+        now = datetime.fromisoformat(local_time) if local_time else datetime.now()
+    except ValueError:
+        raise HTTPException(400, "Thời gian thiết bị phải theo định dạng YYYY-MM-DDTHH:MM.")
     today = now.date().isoformat()
     clock = now.strftime("%H:%M")
     with connect() as db:
@@ -343,7 +347,8 @@ def due_medications(u=Depends(only_user)):
                 year=now.year, month=now.month, day=now.day
             )
             minutes_apart = abs((now - scheduled_dt).total_seconds()) / 60
-            valid_day = (row["repeat_rule"] != "weekly" or now.weekday() == 0)
+            start_day = date.fromisoformat(row["start_date"])
+            valid_day = (row["repeat_rule"] != "weekly" or now.weekday() == start_day.weekday())
             valid_day = valid_day and (row["repeat_rule"] != "once" or row["start_date"] == today)
             if minutes_apart <= 1 and valid_day:
                 due.append({"id": row["id"], "name": row["name"], "time": scheduled,
