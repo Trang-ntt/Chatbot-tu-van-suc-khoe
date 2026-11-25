@@ -1,7 +1,30 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HealthTrack</title><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><style>
 body{font-family:Arial;margin:0;background:#f2f6f8;color:#18312c}header{background:#176b58;color:white;padding:18px 5%;display:flex;justify-content:space-between}main{max-width:1050px;margin:24px auto;padding:0 14px}.card{background:white;padding:18px;border-radius:12px;margin:14px 0;box-shadow:0 2px 10px #0001}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}label{display:block;margin:9px 0 4px;font-size:13px}input,select,textarea,button{box-sizing:border-box;width:100%;padding:10px;border:1px solid #ccd8d4;border-radius:7px}button{background:#176b58;color:white;border:0;margin-top:10px;cursor:pointer}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.muted{font-size:13px;color:#65736e}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:8px;border-bottom:1px solid #e5ece9}#workspace{display:none}.notice{padding:10px;background:#e7f5ef;border-radius:8px}.warn{background:#fff0ed}
-</style></head><body><header><b>HealthTrack · Theo dõi sức khỏe</b><span id="who">Chưa đăng nhập</span><button onclick="location.reload()" style="width:auto;margin:0">Đăng xuất</button></header><main>
+
+#mainNav{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid #dbe5e1;padding:8px max(14px,calc((100% - 1050px)/2));display:flex;gap:7px;overflow-x:auto}
+#mainNav button{white-space:nowrap;width:auto;margin:0;background:#e7f1ed;color:#176b58;padding:9px 12px}
+#mainNav button.active{background:#176b58;color:#fff}
+.chat-log{min-height:90px;max-height:300px;overflow:auto;background:#f5f8f7;border-radius:8px;padding:10px;white-space:pre-wrap}
+.chat-line{padding:7px 9px;margin:6px 0;border-radius:8px;background:white}
+.chat-line.user{background:#e5f3ed}
+.action-link{display:inline-block;margin:5px;padding:7px 10px;background:#e7f1ed;color:#176b58;border-radius:7px;cursor:pointer}
+@media(max-width:650px){#mainNav{top:0}.row{grid-template-columns:1fr}}
+</style></head><body><header><b>HealthTrack · Theo dõi sức khỏe</b><span id="who">Chưa đăng nhập</span><button onclick="location.reload()" style="width:auto;margin:0">Đăng xuất</button></header>
+<nav id="mainNav" aria-label="Điều hướng chính">
+<button onclick="goPage('login')">Đăng nhập</button>
+<button onclick="goPage('guestSymptoms')">Phân tích triệu chứng</button>
+</nav><main>
 <section class="card" id="login"><h2>Đăng nhập</h2><div class="row"><input id="username" placeholder="Tên đăng nhập"><input id="password" type="password" placeholder="Mật khẩu"></div><button onclick="signIn()">Đăng nhập</button><button onclick="register()">Tạo tài khoản người dùng</button><p class="muted">Tài khoản demo: user_demo / UserDemo!2026 · viewer_demo / ViewerDemo!2026 · admin_demo / AdminDemo!2026</p><p class="muted">Tài khoản demo được tạo bằng lệnh python -m app.seed_demo.</p></section>
+
+<section class="card" id="guestSymptoms">
+<h2>Phân tích triệu chứng độc lập</h2>
+<p class="muted">Có thể sử dụng khi chưa đăng nhập. Phiên này không đọc hồ sơ hoặc chỉ số cá nhân.</p>
+<div class="row"><div><label>Tuổi</label><input id="guestAge" type="number" min="1" max="119" placeholder="Nhập tuổi"></div>
+<div><label>Giới tính</label><select id="guestSex"><option value="">Chọn giới tính</option><option value="nam">Nam</option><option value="nu">Nữ</option></select></div></div>
+<button onclick="startGuestChat()">Bắt đầu phân tích</button>
+<div id="guestChatLog" class="chat-log" aria-live="polite"></div>
+<div class="row"><input id="guestChatText" placeholder="Ví dụ: tôi bị sốt, ho, đau họng"><button onclick="sendGuestChat()">Gửi</button></div>
+</section>
 <section id="workspace" style="display:none"><p id="status" class="notice"></p><div class="grid">
 <div class="card"><h3>Ghi chỉ số</h3><label>Loại chỉ số</label><select id="metric"><option value="blood_pressure">Huyết áp</option><option value="weight">Cân nặng</option><option value="glucose">Đường huyết</option><option value="heart_rate">Nhịp tim</option><option value="sleep">Giấc ngủ</option></select><div class="row"><div><label>Giá trị</label><input id="value" type="number" step=".1"></div><div><label>Giá trị phụ (tâm trương)</label><input id="secondary" type="number" step=".1"></div></div><label>Đơn vị</label><input id="unit" value="kg"><label>Thời điểm</label><input id="time" type="datetime-local"><label>Ghi chú</label><input id="note"><button onclick="saveMetric()">Lưu số đo</button></div>
 <div class="card"><h3>Hồ sơ cá nhân</h3><label>Họ tên</label><input id="full_name"><div class="row"><div><label>Ngày sinh (hệ thống tự tính tuổi)</label><input id="birth_date" type="date"><p class="muted" id="ageDisplay">Tuổi: chưa cập nhật</p></div><div><label>Giới tính</label><select id="sex"><option value="">Chưa khai báo</option><option>Nam</option><option>Nữ</option><option>Khác</option><option>Không muốn trả lời</option></select></div></div><label>Chiều cao (cm)</label><input id="height_cm" type="number"><label>Tiền sử</label><textarea id="medical_history"></textarea><label>Mục tiêu</label><textarea id="health_goals"></textarea><button onclick="saveProfile()">Lưu hồ sơ</button></div></div>
@@ -10,6 +33,35 @@ body{font-family:Arial;margin:0;background:#f2f6f8;color:#18312c}header{backgrou
 <div class="card"><h3>Nhắc nhở</h3><select id="rtype"><option value="measure">Đo chỉ số</option><option value="medicine">Uống thuốc</option><option value="exercise">Vận động</option></select><input id="rtitle" placeholder="Nội dung nhắc"><input id="rtime" type="datetime-local"><label>Lặp lại</label><select id="repeatRule"><option value="none">Không lặp</option><option value="daily">Hằng ngày</option><option value="weekly">Hằng tuần</option></select><button onclick="addReminder()">Tạo nhắc nhở</button><div id="reminders"></div></div></div>
 <div class="grid"><div class="card"><h3>Cảnh báo</h3><div id="alerts"></div></div><div class="card"><h3>Chia sẻ có đồng ý</h3><input id="viewer" placeholder="Tài khoản viewer"><select id="shareScope"><option value="metrics">Chỉ số sức khỏe</option><option value="profile_and_metrics">Hồ sơ và chỉ số sức khỏe</option></select><label><input id="consent" type="checkbox" style="width:auto"> Tôi đồng ý chia sẻ chỉ số cho tài khoản này</label><button onclick="share()">Chia sẻ</button><div id="shares"></div></div></div>
 <div class="card"><h3>Lịch sử số đo</h3><button onclick="loadMetrics()">Tải lại</button><div style="overflow:auto"><table><thead><tr><th>Thời điểm</th><th>Loại</th><th>Giá trị</th><th>Đơn vị</th></tr></thead><tbody id="history"></tbody></table></div><button onclick="downloadReport('xlsx')">Xuất Excel</button><button onclick="downloadReport('pdf')">Xuất PDF</button><label>Nhập dữ liệu CSV</label><input id="csvfile" type="file" accept=".csv"><button onclick="uploadCsv()">Nhập CSV</button></div>
+
+<div class="card" id="personalAssistant">
+<h3>Chatbot tư vấn sức khỏe cá nhân</h3>
+<p class="muted">Chỉ người dùng đã đăng nhập mới dùng được. Chatbot đọc các số đo gần nhất của chính tài khoản này.</p>
+<button onclick="startPersonalChat()">Kết nối hồ sơ và bắt đầu</button>
+<div id="personalChatLog" class="chat-log" aria-live="polite"></div>
+<div class="row"><input id="personalChatText" placeholder="Hỏi về chỉ số hoặc mô tả triệu chứng"><button onclick="sendPersonalChat()">Gửi</button></div>
+</div>
+<div class="card" id="appointments">
+<h3>Yêu cầu đặt lịch khám</h3>
+<p class="muted">Chức năng mô phỏng gửi yêu cầu trong ứng dụng; không phải lịch hẹn bệnh viện đã xác nhận.</p>
+<label>Chuyên khoa</label><select id="appointmentSpecialty"><option>Nội tổng quát</option><option>Tim mạch</option><option>Nội tiết</option><option>Hô hấp</option><option>Da liễu</option><option>Nhi khoa</option><option>Khác</option></select>
+<label>Thời gian mong muốn</label><input id="appointmentTime" type="datetime-local">
+<label>Lý do khám</label><textarea id="appointmentReason"></textarea>
+<label>Ghi chú</label><textarea id="appointmentNote"></textarea>
+<button onclick="sendAppointment()">Gửi yêu cầu</button><div id="appointmentList"></div>
+</div>
+<div class="card" id="medications">
+<h3>Quản lý thuốc và nhắc uống</h3>
+<p class="muted">Chỉ nhập tên thuốc, hướng dẫn và thời gian theo đơn/chỉ dẫn của nhân viên y tế. Ứng dụng không tự đề xuất liều dùng.</p>
+<label>Tên thuốc</label><input id="medName">
+<label>Hướng dẫn từ đơn thuốc</label><input id="medInstructions" placeholder="Nhập nguyên văn hướng dẫn đã được kê">
+<label>Giờ nhắc (HH:MM, cách nhau bằng dấu phẩy)</label><input id="medTimes" placeholder="08:00, 20:00">
+<div class="row"><div><label>Ngày bắt đầu</label><input id="medStart" type="date"></div><div><label>Ngày kết thúc (nếu có)</label><input id="medEnd" type="date"></div></div>
+<label>Lặp lại</label><select id="medRepeat"><option value="daily">Hằng ngày</option><option value="weekly">Hằng tuần (thứ Hai)</option><option value="once">Một lần</option></select>
+<label>Ghi chú</label><input id="medNotes">
+<button onclick="saveMedication()">Lưu lịch nhắc thuốc</button><div id="medicationList"></div>
+<p class="muted">Thông báo trình duyệt chỉ hoạt động khi trang đang mở và bạn đã cấp quyền thông báo.</p>
+</div>
 </section>
 <section id="viewerWorkspace" class="card" style="display:none"><h2>Dữ liệu được chia sẻ với tôi</h2><select id="sharedOwner"></select><button onclick="loadShared()">Xem dữ liệu được chia sẻ</button><div id="sharedProfile"></div><div id="sharedMetrics"></div></section>
 <section id="adminWorkspace" class="card" style="display:none"><h2>Quản trị tài khoản</h2><div id="adminUsers"></div><p class="muted">Admin chỉ quản lý tài khoản và vai trò; không tự động được xem hồ sơ hoặc số đo sức khỏe.</p></section>
@@ -18,7 +70,7 @@ body{font-family:Arial;margin:0;background:#f2f6f8;color:#18312c}header{backgrou
 let token='',chart,role='';const $=x=>document.getElementById(x);const esc=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 async function api(path,opt={}){opt.headers={...(opt.headers||{}),Authorization:'Bearer '+token};if(opt.body)opt.headers['Content-Type']='application/json';let r=await fetch('/api'+path,opt),d=await r.json().catch(()=>({detail:'Lỗi máy chủ'}));if(!r.ok)throw Error(d.detail||'Lỗi');return d}
 function message(t,bad=false){$('status').className='notice'+(bad?' warn':'');$('status').textContent=t}
-async function signIn(){try{let r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('username').value,password:$('password').value})}),d=await r.json();if(!r.ok)throw Error(d.detail);token=d.access_token;role=d.role;$('login').style.display='none';$('who').textContent=d.username+' · '+d.role;if(role==='user'){$('workspace').style.display='block';await Promise.all([loadProfile(),loadMetrics(),loadAlerts(),loadReminders(),loadShares(),trend()])}else if(role==='viewer'){$('viewerWorkspace').style.display='block';await loadSharedOwners()}else{$('adminWorkspace').style.display='block';await loadAdminUsers()}}catch(e){alert(e.message)}}
+async function signIn(){try{let r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('username').value,password:$('password').value})}),d=await r.json();if(!r.ok)throw Error(d.detail);token=d.access_token;role=d.role;initIntegratedNav();$('login').style.display='none';$('who').textContent=d.username+' · '+d.role;if(role==='user'){$('workspace').style.display='block';await Promise.all([loadProfile(),loadMetrics(),loadAlerts(),loadReminders(),loadShares(),trend(),loadAppointments(),loadMedications()])}else if(role==='viewer'){$('viewerWorkspace').style.display='block';await loadSharedOwners()}else{$('adminWorkspace').style.display='block';await loadAdminUsers()}}catch(e){alert(e.message)}}
 async function register(){try{let r=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('username').value,password:$('password').value})}),d=await r.json();if(!r.ok)throw Error(d.detail);alert('Đăng ký thành công. Bạn có thể đăng nhập.')}catch(e){alert(e.message)}}
 async function loadSharedOwners(){try{let a=await api('/shared/mine');$('sharedOwner').innerHTML=a.map(x=>'<option value="'+x.owner_id+'">'+(x.full_name||'Tài khoản')+' · '+x.scope+'</option>').join('');if(!a.length)$('sharedMetrics').textContent='Chưa có ai chia sẻ dữ liệu với bạn.'}catch(e){message(e.message,true)}}
 async function loadShared(){try{let id=$('sharedOwner').value;if(!id)throw Error('Chưa có dữ liệu được chia sẻ');let a=await api('/shared/'+id+'/metrics');$('sharedMetrics').textContent=JSON.stringify(a,null,2);try{let p=await api('/shared/'+id+'/profile');$('sharedProfile').textContent=JSON.stringify(p,null,2)}catch(e){$('sharedProfile').textContent='Chủ tài khoản chưa chia sẻ hồ sơ.'}}catch(e){message(e.message,true)}}
@@ -41,4 +93,50 @@ async function loadShares(){try{let a=await api('/shares');$('shares').innerHTML
 async function revokeShare(id){try{await api('/shares/'+id,{method:'DELETE'});message('Đã thu hồi quyền chia sẻ.');await loadShares()}catch(e){message(e.message,true)}}
 $('time').value=new Date().toISOString().slice(0,16);$('rtime').value=new Date(Date.now()+3600000).toISOString().slice(0,16);
 $('metric').onchange=()=>{$('unit').value=({blood_pressure:'mmHg',weight:'kg',glucose:'mmol/L',heart_rate:'bpm',sleep:'hour'})[$('metric').value]};
-</script></body></html>
+</script>
+<script>
+let guestSession=null, personalSession=null;
+function goPage(id){const el=$(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});document.querySelectorAll('#mainNav button').forEach(b=>b.classList.toggle('active',b.dataset.target===id))}
+function initIntegratedNav(){
+ const nav=$('mainNav'); if(!nav)return;
+ const items=[['Tổng quan','workspace'],['Hồ sơ','profile'],['Nhập chỉ số','metrics'],['Xu hướng','trends'],['Chatbot cá nhân','personalAssistant'],['Triệu chứng','guestSymptoms'],['Đặt lịch khám','appointments'],['Thuốc','medications'],['Cảnh báo','alerts'],['Báo cáo','history'],['Chia sẻ','shares']];
+ nav.innerHTML='';
+ items.forEach(([label,id])=>{if(id!=='guestSymptoms'&&role!=='user')return;const b=document.createElement('button');b.textContent=label;b.dataset.target=id;b.onclick=()=>goPage(id);nav.appendChild(b)});
+ document.querySelectorAll('#workspace .card h3').forEach(h=>{
+   const t=h.textContent;const map=[['Ghi chỉ số','metrics'],['Hồ sơ cá nhân','profile'],['Xu hướng','trends'],['Ngưỡng cảnh báo','thresholds'],['Nhắc nhở','reminders'],['Cảnh báo','alerts'],['Chia sẻ','shares'],['Lịch sử số đo','history']];
+   const found=map.find(([key])=>t.includes(key));if(found)h.closest('.card').id=found[1];
+ });
+}
+function appendChat(id,who,text){const log=$(id),p=document.createElement('div');p.className='chat-line '+who;p.textContent=text;log.appendChild(p);log.scrollTop=log.scrollHeight}
+function renderBotResponse(logId,d){
+ if(d.tin_nhan)appendChat(logId,'bot',d.tin_nhan);
+ if(d.canh_bao_cap_cuu)appendChat(logId,'bot','CẢNH BÁO: '+d.canh_bao_cap_cuu);
+ if(d.loai==='ket_qua'){
+  appendChat(logId,'bot','Triệu chứng xác nhận: '+(d.trieu_chung_co||[]).join(', '));
+  (d.danh_sach_benh||[]).forEach((x,i)=>appendChat(logId,'bot',(i+1)+'. '+x.ten+' — điểm phù hợp tương đối '+x.diem_phu_hop+'%. '+(x.phu_hop_tuoi||'')));
+  appendChat(logId,'bot',d.loi_khuyen||'');
+ }
+ if(d.health_context)appendChat(logId,'bot','Dữ liệu sức khỏe gần nhất của tài khoản: '+d.health_context);
+ if(d.luu_y)appendChat(logId,'bot',d.luu_y);
+ (d.goi_y_chuc_nang||[]).forEach(x=>{const a=document.createElement('a');a.className='action-link';a.textContent=x.label;a.href=x.href;a.onclick=e=>{e.preventDefault();goPage(x.href.slice(1))};$(logId).appendChild(a)});
+}
+async function startGuestChat(){try{const r=await fetch('/api/symptoms/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({age:Number($('guestAge').value),sex:$('guestSex').value})});const d=await r.json();if(!r.ok)throw Error(d.detail||'Không thể bắt đầu');guestSession=d.session_id;$('guestChatLog').innerHTML='';appendChat('guestChatLog','bot',d.tin_nhan)}catch(e){appendChat('guestChatLog','bot',e.message)}}
+async function sendGuestChat(){try{if(!guestSession)throw Error('Hãy bắt đầu phiên phân tích trước.');const text=$('guestChatText').value.trim();if(!text)return;appendChat('guestChatLog','user',text);$('guestChatText').value='';const r=await fetch('/api/symptoms/message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:guestSession,message:text})});const d=await r.json();if(!r.ok)throw Error(d.detail||'Lỗi phân tích');renderBotResponse('guestChatLog',d)}catch(e){appendChat('guestChatLog','bot',e.message)}}
+async function startPersonalChat(){try{const d=await api('/assistant/start',{method:'POST'});personalSession=d.session_id;$('personalChatLog').innerHTML='';appendChat('personalChatLog','bot',d.tin_nhan);appendChat('personalChatLog','bot','Chỉ số hiện có: '+d.health_context)}catch(e){appendChat('personalChatLog','bot',e.message)}}
+async function sendPersonalChat(){try{if(!personalSession)throw Error('Hãy bấm “Kết nối hồ sơ và bắt đầu” trước.');const text=$('personalChatText').value.trim();if(!text)return;appendChat('personalChatLog','user',text);$('personalChatText').value='';const d=await api('/assistant/message',{method:'POST',body:JSON.stringify({session_id:personalSession,message:text})});renderBotResponse('personalChatLog',d)}catch(e){appendChat('personalChatLog','bot',e.message)}}
+async function sendAppointment(){try{const preferred=new Date($('appointmentTime').value);if(!Number.isFinite(preferred.getTime()))throw Error('Chọn ngày giờ khám.');const d=await api('/appointments',{method:'POST',body:JSON.stringify({specialty:$('appointmentSpecialty').value,preferred_at:preferred.toISOString(),reason:$('appointmentReason').value,note:$('appointmentNote').value})});appendChat('personalChatLog','bot',d.message);await loadAppointments()}catch(e){alert(e.message)}}
+async function loadAppointments(){try{const a=await api('/appointments');$('appointmentList').innerHTML=a.map(x=>'<p>'+esc(x.specialty)+' · '+esc(x.preferred_at)+' · '+esc(x.status)+(x.status==='pending'?' <button onclick="cancelAppointment('+x.id+')">Hủy</button>':'')+'</p>').join('')||'Chưa có yêu cầu khám.'}catch(e){}}
+async function cancelAppointment(id){try{await api('/appointments/'+id,{method:'DELETE'});await loadAppointments()}catch(e){alert(e.message)}}
+async function saveMedication(){try{const times=$('medTimes').value.split(',').map(x=>x.trim()).filter(Boolean);const d=await api('/medications',{method:'POST',body:JSON.stringify({name:$('medName').value,instructions:$('medInstructions').value,schedule_times:times,start_date:$('medStart').value,end_date:$('medEnd').value,repeat_rule:$('medRepeat').value,notes:$('medNotes').value})});alert(d.message);await loadMedications()}catch(e){alert(e.message)}}
+async function loadMedications(){try{const a=await api('/medications');$('medicationList').innerHTML=a.map(x=>'<p>'+esc(x.name)+' · '+esc(JSON.parse(x.schedule_times).join(', '))+' · '+esc(x.repeat_rule)+' <button onclick="disableMedication('+x.id+')">Tắt</button></p>').join('')||'Chưa có lịch thuốc.'}catch(e){}}
+async function disableMedication(id){try{await api('/medications/'+id,{method:'DELETE'});await loadMedications()}catch(e){alert(e.message)}}
+async function checkMedicationNotifications(){
+ if(role!=='user'||!('Notification'in window)||Notification.permission!=='granted')return;
+ try{const due=await api('/medications/due');for(const m of due){const key='med-notice-'+m.id+'-'+new Date().toISOString().slice(0,10)+'-'+m.time;if(sessionStorage.getItem(key))continue;new Notification('Nhắc lịch thuốc: '+m.name,{body:'Đến giờ nhắc theo lịch bạn đã nhập. Làm theo đơn/chỉ dẫn y tế.'});sessionStorage.setItem(key,'1')}}catch(e){}
+}
+$('appointmentTime').value=new Date(Date.now()+86400000).toISOString().slice(0,16);
+$('medStart').value=new Date().toISOString().slice(0,10);
+if('Notification'in window&&Notification.permission==='default'){/* Permission is requested only after user clicks the notification area. */}
+setInterval(checkMedicationNotifications,60000);
+</script>
+</body></html>
