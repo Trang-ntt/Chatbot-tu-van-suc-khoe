@@ -1,4 +1,5 @@
 import bcrypt
+from datetime import date
 from fastapi.testclient import TestClient
 from app import db
 from app.main import app
@@ -105,3 +106,24 @@ def test_assistant_requires_profile_age_and_sex(tmp_path, monkeypatch):
         response = client.post("/api/assistant/start", headers=headers)
         assert response.status_code == 400
         assert "Hồ sơ cá nhân" in response.json()["detail"]
+
+
+def test_medication_due_uses_browser_local_time(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", str(tmp_path / "med-due.db"))
+    db.init_db()
+    with db.connect() as conn:
+        make_user(conn, "dueuser")
+    with TestClient(app) as client:
+        headers = auth(client, "dueuser")
+        today = date.today().isoformat()
+        saved = client.post("/api/medications", headers=headers, json={
+            "name": "Thuốc kiểm thử", "instructions": "Theo đơn",
+            "schedule_times": ["08:00"], "start_date": today,
+            "repeat_rule": "daily"
+        })
+        assert saved.status_code == 200, saved.text
+        due = client.get("/api/medications/due?local_time=" + today + "T08:00", headers=headers)
+        assert due.status_code == 200, due.text
+        assert len(due.json()) == 1
+        invalid = client.get("/api/medications/due?local_time=bad-time", headers=headers)
+        assert invalid.status_code == 400
