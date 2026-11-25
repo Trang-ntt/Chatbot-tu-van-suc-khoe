@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from .db import connect
+from .analytics import analyze_series
 from .main import current_user, only_user
 from .symptom_engine import bot
 
@@ -173,6 +174,13 @@ def _personal_context(user_id):
     for row in rows:
         grouped.setdefault(row["metric"], []).append(dict(row))
     notes = []
+    insights = []
+    with connect() as db:
+        configured_limits = {
+            row["metric"]: dict(row) for row in db.execute(
+                "SELECT * FROM thresholds WHERE user_id=?", (user_id,)
+            ).fetchall()
+        }
     for metric, values in grouped.items():
         latest = values[0]
         label = {"blood_pressure": "huyết áp", "weight": "cân nặng", "glucose": "đường huyết",
@@ -181,10 +189,43 @@ def _personal_context(user_id):
         if latest["secondary_value"] is not None:
             value += "/" + str(latest["secondary_value"])
         notes.append(f"{label} gần nhất: {value} {latest['unit']} ({latest['measured_at']}).")
+        ordered = list(reversed(values))
+        analysis = analyze_series([row["value"] for row in ordered])
+        limit = configured_limits.get(metric)
+        outside = False
+        if limit:
+            outside = (
+                (limit["min_value"] is not None and latest["value"] < limit["min_value"]) or
+                (limit["max_value"] is not None and latest["value"] > limit["max_value"]) or
+                (metric == "blood_pressure" and latest["secondary_value"] is not None and (
+                    (limit["min_secondary"] is not None and latest["secondary_value"] < limit["min_secondary"]) or
+                    (limit["max_secondary"] is not None and latest["secondary_value"] > limit["max_secondary"])
+                ))
+            )
+        insights.append({
+            "metric": metric,
+            "label": label,
+            "latest_value": value,
+            "unit": latest["unit"],
+            "record_count": analysis["count"],
+            "trend": analysis["trend"],
+            "explanation": analysis["explanation"],
+            "outside_personal_threshold": outside
+        })
+    profile_summary = ""
+    if profile:
+        parts = []
+        if profile["sex"]:
+            parts.append("giới tính khai báo: " + profile["sex"])
+        if profile["health_goals"]:
+            parts.append("mục tiêu: " + profile["health_goals"])
+        if parts:
+            profile_summary = "Hồ sơ cá nhân — " + "; ".join(parts) + ". "
     return {
         "profile": dict(profile) if profile else {},
         "latest_metrics": grouped,
-        "summary": " ".join(notes) if notes else "Chưa có chỉ số sức khỏe được ghi nhận."
+        "health_insights": insights,
+        "summary": profile_summary + (" ".join(notes) if notes else "Chưa có chỉ số sức khỏe được ghi nhận.")
     }
 
 
@@ -225,6 +266,19 @@ def personal_assistant_message(x: ChatMessage, u=Depends(only_user)):
     response = _message(x.session_id, u["id"], x.message)
     context = _personal_context(u["id"])
     response["health_context"] = context["summary"]
+    response["health_insights"] = context["health_insights"]
+    if response.get("loai") == "chua_hieu":
+        response["loai"] = "tu_van_ca_nhan"
+        if context["health_insights"]:
+            response["tin_nhan"] = (
+                "Mình chưa nhận diện được triệu chứng trong câu hỏi. Dưới đây là phân tích xu hướng "
+                "từ các số đo bạn đã lưu. Đây là thống kê theo dữ liệu cá nhân, không phải kết luận y khoa."
+            )
+        else:
+            response["tin_nhan"] = (
+                "Bạn chưa có đủ số đo để mình phân tích xu hướng. Hãy vào mục Nhập chỉ số để ghi nhận "
+                "huyết áp, cân nặng, đường huyết, nhịp tim hoặc giấc ngủ."
+            )
     response["goi_y_chuc_nang"] = [
         {"label": "Xem xu hướng sức khỏe", "href": "#trends"},
         {"label": "Ghi chỉ số mới", "href": "#metrics"},
