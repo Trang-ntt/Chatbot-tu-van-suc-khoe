@@ -57,6 +57,11 @@ class Limit(BaseModel):
     source_name:str
     source_url:str
     context:str=""
+class Goal(BaseModel):
+    metric:str
+    target_value:float
+    unit:str=""
+
 class Reminder(BaseModel):
     reminder_type:str
     title:str
@@ -178,10 +183,22 @@ def limits(u=Depends(only_user)):
 def alerts(u=Depends(only_user)):
     with connect() as db: return [dict(r) for r in db.execute("SELECT * FROM alerts WHERE user_id=? ORDER BY created_at DESC",(u["id"],)).fetchall()]
 
+@app.get("/api/goals")
+def get_goals(u=Depends(only_user)):
+    with connect() as db:
+        return [dict(r) for r in db.execute("SELECT * FROM metric_goals WHERE user_id=?",(u["id"],)).fetchall()]
+
+@app.post("/api/goals")
+def set_goal(x:Goal,u=Depends(only_user)):
+    if x.metric not in METRICS: raise HTTPException(400,"Loại chỉ số không hợp lệ.")
+    with connect() as db:
+        db.execute("INSERT INTO metric_goals(user_id,metric,target_value,unit) VALUES(?,?,?,?) ON CONFLICT(user_id,metric) DO UPDATE SET target_value=excluded.target_value,unit=excluded.unit",(u["id"],x.metric,x.target_value,x.unit))
+    return {"message":"Đã lưu mục tiêu."}
+
 @app.get("/api/analytics/trends")
 def trends(metric:str,period:str="month",u=Depends(only_user)):
-    if metric not in METRICS or period not in {"week","month","all"}: raise HTTPException(400,"Tham số không hợp lệ.")
-    cutoff={"week":"-7 days","month":"-30 days"}.get(period)
+    if metric not in METRICS or period not in {"day","week","month","all"}: raise HTTPException(400,"Tham số không hợp lệ.")
+    cutoff={"day":"-1 day","week":"-7 days","month":"-30 days"}.get(period)
     with connect() as db:
         sql="SELECT value,secondary_value,unit,measured_at FROM metrics WHERE user_id=? AND metric=?";args=[u["id"],metric]
         if cutoff: sql+=" AND measured_at>=datetime('now',?)";args.append(cutoff)
