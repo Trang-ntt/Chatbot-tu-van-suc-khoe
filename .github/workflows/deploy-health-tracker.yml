@@ -38,10 +38,12 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           html = Path('app/static/index.html').read_text(encoding='utf-8')
-          script = html.split('<script>', 1)[1].split('</script>', 1)[0]
-          Path('/tmp/health-tracker-dashboard.js').write_text(script, encoding='utf-8')
+          import re
+          scripts = re.findall(r'<script>(.*?)</script>', html, flags=re.S)
+          for index, script in enumerate(scripts):
+              Path(f'/tmp/health-tracker-dashboard-{index}.js').write_text(script, encoding='utf-8')
           PY
-          node --check /tmp/health-tracker-dashboard.js
+          for file in /tmp/health-tracker-dashboard-*.js; do node --check "$file"; done
       - name: Verify root ASGI entry point
         run: python -c "import sys; sys.path.insert(0, '..'); from main import app; print(app.title)"
   deploy:

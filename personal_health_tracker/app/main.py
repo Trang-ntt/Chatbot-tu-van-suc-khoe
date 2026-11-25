@@ -384,3 +384,8 @@ def home():
     from fastapi.responses import HTMLResponse
     page = Path(__file__).parent / "static" / "index.html"
     return HTMLResponse(page.read_text(encoding="utf-8"))
+
+
+# Integrated modules are imported after core auth dependencies are defined.
+from .integrated import router as integrated_router
+app.include_router(integrated_router)
