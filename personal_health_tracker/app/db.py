@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS metrics (
 CREATE INDEX IF NOT EXISTS idx_metrics_user_time ON metrics(user_id, measured_at);
 CREATE TABLE IF NOT EXISTS thresholds (
  id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
- metric TEXT NOT NULL, min_value REAL, max_value REAL, sudden_change_pct REAL DEFAULT 20,
+ metric TEXT NOT NULL, min_value REAL, max_value REAL, min_secondary REAL, max_secondary REAL, sudden_change_pct REAL DEFAULT 20,
  source_name TEXT NOT NULL, source_url TEXT NOT NULL, context TEXT DEFAULT '',
  UNIQUE(user_id, metric)
 );
@@ -65,6 +65,12 @@ def init_db():
     Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
     with connect() as conn:
         conn.executescript(SCHEMA)
+        # Migrate databases created by earlier project versions without losing data.
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(thresholds)")}
+        if "min_secondary" not in columns:
+            conn.execute("ALTER TABLE thresholds ADD COLUMN min_secondary REAL")
+        if "max_secondary" not in columns:
+            conn.execute("ALTER TABLE thresholds ADD COLUMN max_secondary REAL")
 
 def rowdict(row):
     return dict(row) if row else None
