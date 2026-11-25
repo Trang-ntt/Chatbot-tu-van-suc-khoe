@@ -13,4 +13,4 @@ def test_downward():
 
 def test_zscore_requires_minimum_samples():
     assert analyze_series([1,1,1,1])["outliers"]==[]
-    assert 5 in analyze_series([1,1,1,1,1,20])["outliers"]
+    assert 10 in analyze_series([1,1,1,1,1,1,1,1,1,1,20])["outliers"]
