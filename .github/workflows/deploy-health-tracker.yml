@@ -1,0 +1,57 @@
+name: Health Tracker - Test and Deploy
+on:
+  push:
+    branches: [main]
+    paths:
+      - "personal_health_tracker/**"
+      - "main.py"
+      - "requirements.txt"
+      - "render.yaml"
+      - ".github/workflows/deploy-health-tracker.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "personal_health_tracker/**"
+      - "main.py"
+      - "requirements.txt"
+      - "render.yaml"
+      - ".github/workflows/deploy-health-tracker.yml"
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: personal_health_tracker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: personal_health_tracker/requirements.txt
+      - run: pip install -r requirements.txt
+      - run: python -m compileall -q app
+      - run: pytest -q
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deployment when configured
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          DEPLOYED_APP_URL: ${{ vars.DEPLOYED_APP_URL }}
+        run: |
+          if [ -n "$RENDER_DEPLOY_HOOK_URL" ]; then
+            curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK_URL"
+            echo "## Website deployment" >> "$GITHUB_STEP_SUMMARY"
+            if [ -n "$DEPLOYED_APP_URL" ]; then
+              echo "Website: $DEPLOYED_APP_URL" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "Render deploy requested. Add repository variable DEPLOYED_APP_URL to show the live link here." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            echo "## Website deployment not configured" >> "$GITHUB_STEP_SUMMARY"
+            echo "Tests passed. Add secret RENDER_DEPLOY_HOOK_URL and variable DEPLOYED_APP_URL after creating the Render service. Then this Actions run will trigger deployment and show the website link." >> "$GITHUB_STEP_SUMMARY"
+          fi
