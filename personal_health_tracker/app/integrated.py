@@ -252,7 +252,9 @@ def request_appointment(x: AppointmentRequest, u=Depends(only_user)):
         dt = datetime.fromisoformat(x.preferred_at.replace("Z", "+00:00"))
     except ValueError:
         raise HTTPException(400, "Thời gian mong muốn phải theo định dạng ISO.")
-    if dt <= datetime.now(timezone.utc) and dt.tzinfo is not None:
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    if dt <= datetime.now(timezone.utc):
         raise HTTPException(400, "Hãy chọn thời gian trong tương lai.")
     with connect() as db:
         cur = db.execute(
@@ -336,9 +338,16 @@ def due_medications(u=Depends(only_user)):
     due = []
     for row in rows:
         times = json.loads(row["schedule_times"])
-        if clock in times and (row["repeat_rule"] != "weekly" or now.weekday() == 0):
-            due.append({"id": row["id"], "name": row["name"], "time": clock,
-                        "instructions": row["instructions"]})
+        for scheduled in times:
+            scheduled_dt = datetime.strptime(scheduled, "%H:%M").replace(
+                year=now.year, month=now.month, day=now.day
+            )
+            minutes_apart = abs((now - scheduled_dt).total_seconds()) / 60
+            valid_day = (row["repeat_rule"] != "weekly" or now.weekday() == 0)
+            valid_day = valid_day and (row["repeat_rule"] != "once" or row["start_date"] == today)
+            if minutes_apart <= 1 and valid_day:
+                due.append({"id": row["id"], "name": row["name"], "time": scheduled,
+                            "instructions": row["instructions"]})
     return due
 
 
