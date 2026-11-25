@@ -139,7 +139,7 @@ async function markMedicationTaken(id){try{const d=await api('/medications/'+id+
 async function enableMedicationNotifications(){if(!('Notification'in window)){alert('Trình duyệt không hỗ trợ thông báo.');return}const permission=await Notification.requestPermission();alert(permission==='granted'?'Đã bật thông báo khi trang đang mở.':'Bạn chưa cấp quyền thông báo.');checkMedicationNotifications()}
 async function checkMedicationNotifications(){
  if(role!=='user'||!('Notification'in window)||Notification.permission!=='granted')return;
- try{const due=await api('/medications/due');for(const m of due){const key='med-notice-'+m.id+'-'+new Date().toISOString().slice(0,10)+'-'+m.time;if(sessionStorage.getItem(key))continue;new Notification('Nhắc lịch thuốc: '+m.name,{body:'Đến giờ nhắc theo lịch bạn đã nhập. Làm theo đơn/chỉ dẫn y tế.'});sessionStorage.setItem(key,'1')}}catch(e){}
+ try{const n=new Date(),localTime=[n.getFullYear(),String(n.getMonth()+1).padStart(2,'0'),String(n.getDate()).padStart(2,'0')].join('-')+'T'+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');const due=await api('/medications/due?local_time='+encodeURIComponent(localTime));for(const m of due){const key='med-notice-'+m.id+'-'+new Date().toISOString().slice(0,10)+'-'+m.time;if(sessionStorage.getItem(key))continue;new Notification('Nhắc lịch thuốc: '+m.name,{body:'Đến giờ nhắc theo lịch bạn đã nhập. Làm theo đơn/chỉ dẫn y tế.'});sessionStorage.setItem(key,'1')}}catch(e){}
 }
 $('appointmentTime').value=new Date(Date.now()+86400000).toISOString().slice(0,16);
 $('medStart').value=new Date().toISOString().slice(0,10);
