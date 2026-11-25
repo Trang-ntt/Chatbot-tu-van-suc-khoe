@@ -15,11 +15,6 @@ def stats(_=Depends(admin_only)):
       SUM(CASE WHEN IsActive=1 THEN 1 ELSE 0 END) AS active,
       SUM(CASE WHEN Role='admin' THEN 1 ELSE 0 END) AS admins FROM Users''',one=True)
 
-@router.get('/conversations')
-def conversations(_=Depends(admin_only)):
-    return query('''SELECT TOP 200 c.ConvId,u.FullName,c.Sender,c.Message,c.CreatedAt
-      FROM Conversations c JOIN Users u ON u.UserId=c.UserId ORDER BY c.CreatedAt DESC''')
-
 @router.get('/medications')
 def medications(_=Depends(admin_only)):
     return query('''SELECT m.MedId,u.FullName,m.DrugName,m.Dosage,m.TimesPerDay,m.StartDate,m.EndDate,m.IsActive
