@@ -166,28 +166,40 @@ async def import_csv(file:UploadFile=File(...),u=Depends(only_user)):
     if len(raw)>2_000_000: raise HTTPException(413,"File quá lớn.")
     try: rows=csv.DictReader(io.StringIO(raw.decode("utf-8-sig")))
     except Exception: raise HTTPException(400,"CSV không hợp lệ.")
-    count=0
+    if not rows.fieldnames or not {"metric","value","measured_at"}.issubset(set(rows.fieldnames)):
+        raise HTTPException(400,"CSV cần có các cột metric,value,measured_at.")
+    count=0; skipped=0
     with connect() as db:
         for r in rows:
             try:
-                if r["metric"] not in METRICS: continue
-                datetime.fromisoformat(r["measured_at"].replace("Z","+00:00"))
-                v=float(r["value"]); sv=float(r["secondary_value"]) if r.get("secondary_value") else None
-                if r["metric"]=="blood_pressure" and sv is None: continue
-                db.execute("INSERT INTO metrics(user_id,metric,value,secondary_value,unit,measured_at,note) VALUES(?,?,?,?,?,?,?)",(u["id"],r["metric"],v,sv,r.get("unit",""),r["measured_at"],r.get("note","CSV")))
+                metric=(r.get("metric") or "").strip()
+                if metric not in METRICS: raise ValueError()
+                measured_at=(r.get("measured_at") or "").strip()
+                datetime.fromisoformat(measured_at.replace("Z","+00:00"))
+                v=float(r["value"]); sv=float(r["secondary_value"]) if (r.get("secondary_value") or "").strip() else None
+                if v<=0 or (sv is not None and sv<=0): raise ValueError()
+                if metric=="blood_pressure" and sv is None: raise ValueError()
+                if metric!="blood_pressure" and sv is not None: raise ValueError()
+                store_measurement(db,u["id"],metric,v,sv,(r.get("unit") or "").strip(),measured_at,(r.get("note") or "CSV")[:500])
                 count+=1
-            except (ValueError,KeyError): continue
-    return {"inserted":count}
+            except (ValueError,KeyError,TypeError):
+                skipped+=1
+    return {"inserted":count,"skipped":skipped}
 
 @app.post("/api/thresholds")
 def set_limit(x:Limit,u=Depends(only_user)):
-    if x.metric not in METRICS or (x.min_value is None and x.max_value is None): raise HTTPException(400,"Ngưỡng không hợp lệ.")
+    if x.metric not in METRICS: raise HTTPException(400,"Loại chỉ số không hợp lệ.")
+    if all(v is None for v in (x.min_value,x.max_value,x.min_secondary,x.max_secondary)): raise HTTPException(400,"Cần nhập ít nhất một ngưỡng.")
     if x.min_value is not None and x.max_value is not None and x.min_value>=x.max_value: raise HTTPException(400,"Ngưỡng dưới phải nhỏ hơn ngưỡng trên.")
+    if x.min_secondary is not None and x.max_secondary is not None and x.min_secondary>=x.max_secondary: raise HTTPException(400,"Ngưỡng phụ dưới phải nhỏ hơn ngưỡng phụ trên.")
+    if x.metric!="blood_pressure" and (x.min_secondary is not None or x.max_secondary is not None): raise HTTPException(400,"Chỉ huyết áp mới có ngưỡng phụ.")
+    if not x.source_url.startswith(("https://","http://")): raise HTTPException(400,"URL nguồn phải bắt đầu bằng http:// hoặc https://.")
     with connect() as db:
-        db.execute("""INSERT INTO thresholds(user_id,metric,min_value,max_value,sudden_change_pct,source_name,source_url,context)
-        VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(user_id,metric) DO UPDATE SET min_value=excluded.min_value,max_value=excluded.max_value,
-        sudden_change_pct=excluded.sudden_change_pct,source_name=excluded.source_name,source_url=excluded.source_url,context=excluded.context""",
-        (u["id"],x.metric,x.min_value,x.max_value,x.sudden_change_pct,x.source_name,x.source_url,x.context))
+        db.execute("""INSERT INTO thresholds(user_id,metric,min_value,max_value,min_secondary,max_secondary,sudden_change_pct,source_name,source_url,context)
+        VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(user_id,metric) DO UPDATE SET min_value=excluded.min_value,max_value=excluded.max_value,
+        min_secondary=excluded.min_secondary,max_secondary=excluded.max_secondary,sudden_change_pct=excluded.sudden_change_pct,
+        source_name=excluded.source_name,source_url=excluded.source_url,context=excluded.context""",
+        (u["id"],x.metric,x.min_value,x.max_value,x.min_secondary,x.max_secondary,x.sudden_change_pct,x.source_name,x.source_url,x.context))
     return {"message":"Đã lưu ngưỡng và nguồn."}
 
 @app.get("/api/thresholds")
