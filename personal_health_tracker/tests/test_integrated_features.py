@@ -29,7 +29,7 @@ def test_guest_symptom_analysis_works_without_login(tmp_path, monkeypatch):
         })
         assert result.status_code == 200, result.text
         assert result.json()["loai"] in {"cau_hoi", "ket_qua"}
-        assert client.post("/api/assistant/start").status_code == 403
+        assert client.post("/api/assistant/start").status_code == 401
 
 
 def test_personal_assistant_is_authenticated_and_user_scoped(tmp_path, monkeypatch):
