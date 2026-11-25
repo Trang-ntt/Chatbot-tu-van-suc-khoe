@@ -44,19 +44,21 @@ class Profile(BaseModel):
     health_goals:str=""
 class Measurement(BaseModel):
     metric:str
-    value:float
-    secondary_value:float|None=None
-    unit:str
+    value:float=Field(gt=0)
+    secondary_value:float|None=Field(default=None,gt=0)
+    unit:str=Field(min_length=1,max_length=20)
     measured_at:str
-    note:str=""
+    note:str=Field(default="",max_length=500)
 class Limit(BaseModel):
     metric:str
     min_value:float|None=None
     max_value:float|None=None
-    sudden_change_pct:float=20
-    source_name:str
-    source_url:str
-    context:str=""
+    min_secondary:float|None=None
+    max_secondary:float|None=None
+    sudden_change_pct:float=Field(default=20,gt=0,le=1000)
+    source_name:str=Field(min_length=2,max_length=120)
+    source_url:str=Field(min_length=8,max_length=500)
+    context:str=Field(default="",max_length=500)
 class Goal(BaseModel):
     metric:str
     target_value:float
@@ -121,21 +123,34 @@ def metrics(metric:str|None=None,u=Depends(only_user)):
             sql+=" AND metric=?";args.append(metric)
         return [dict(r) for r in db.execute(sql+" ORDER BY measured_at DESC",args).fetchall()]
 
+def store_measurement(db,user_id,metric,value,secondary_value,unit,measured_at,note):
+    cur=db.execute("INSERT INTO metrics(user_id,metric,value,secondary_value,unit,measured_at,note) VALUES(?,?,?,?,?,?,?)",(user_id,metric,value,secondary_value,unit,measured_at,note))
+    metric_id=cur.lastrowid
+    limit_row=db.execute("SELECT * FROM thresholds WHERE user_id=? AND metric=?",(user_id,metric)).fetchone()
+    primary_out=bool(limit_row and ((limit_row["min_value"] is not None and value<limit_row["min_value"]) or (limit_row["max_value"] is not None and value>limit_row["max_value"])))
+    secondary_out=bool(limit_row and secondary_value is not None and ((limit_row["min_secondary"] is not None and secondary_value<limit_row["min_secondary"]) or (limit_row["max_secondary"] is not None and secondary_value>limit_row["max_secondary"])))
+    if primary_out or secondary_out:
+        label="tâm thu/tâm trương" if metric=="blood_pressure" else metric
+        db.execute("INSERT INTO alerts(user_id,metric,metric_id,alert_type,message,severity) VALUES(?,?,?,?,?,?)",(user_id,metric,metric_id,"threshold",f"Giá trị {label} vượt ngưỡng bạn đã cấu hình. Đo lại đúng cách; nếu có dấu hiệu nghiêm trọng, hãy liên hệ cơ sở y tế/cấp cứu.","warning"))
+    prev=db.execute("SELECT value,secondary_value FROM metrics WHERE user_id=? AND metric=? AND id<>? ORDER BY measured_at DESC,id DESC LIMIT 1",(user_id,metric,metric_id)).fetchone()
+    pct=limit_row["sudden_change_pct"] if limit_row else 20
+    changed=bool(prev and prev["value"] not in (None,0) and abs(value-prev["value"])/abs(prev["value"])*100>=pct)
+    if metric=="blood_pressure" and prev and secondary_value and prev["secondary_value"] not in (None,0):
+        changed=changed or abs(secondary_value-prev["secondary_value"])/abs(prev["secondary_value"])*100>=pct
+    if changed:
+        db.execute("INSERT INTO alerts(user_id,metric,metric_id,alert_type,message,severity) VALUES(?,?,?,?,?,?)",(user_id,metric,metric_id,"change","Chỉ số thay đổi đột ngột so với lần đo trước; hãy đo lại đúng cách và theo dõi.","warning"))
+    return metric_id
+
 @app.post("/api/metrics")
 def add_metric(x:Measurement,u=Depends(only_user)):
     if x.metric not in METRICS: raise HTTPException(400,"Loại chỉ số không hợp lệ.")
     try: datetime.fromisoformat(x.measured_at.replace("Z","+00:00"))
     except ValueError: raise HTTPException(400,"Thời điểm phải ở dạng ISO.")
     if x.metric=="blood_pressure" and x.secondary_value is None: raise HTTPException(400,"Huyết áp cần tâm thu và tâm trương.")
+    if x.metric!="blood_pressure" and x.secondary_value is not None: raise HTTPException(400,"Chỉ số này không nhận giá trị phụ.")
     with connect() as db:
-        cur=db.execute("INSERT INTO metrics(user_id,metric,value,secondary_value,unit,measured_at,note) VALUES(?,?,?,?,?,?,?)",(u["id"],x.metric,x.value,x.secondary_value,x.unit,x.measured_at,x.note))
-        m=db.execute("SELECT * FROM thresholds WHERE user_id=? AND metric=?",(u["id"],x.metric)).fetchone()
-        if m and ((m["min_value"] is not None and x.value<m["min_value"]) or (m["max_value"] is not None and x.value>m["max_value"])):
-            db.execute("INSERT INTO alerts(user_id,metric,metric_id,alert_type,message,severity) VALUES(?,?,?,?,?,?)",(u["id"],x.metric,cur.lastrowid,"threshold","Giá trị vượt ngưỡng bạn đã cấu hình. Đo lại đúng cách; nếu giá trị rất bất thường hoặc có triệu chứng nghiêm trọng, hãy liên hệ cơ sở y tế/cấp cứu.","warning"))
-        prev=db.execute("SELECT value FROM metrics WHERE user_id=? AND metric=? AND id<>? ORDER BY measured_at DESC LIMIT 1",(u["id"],x.metric,cur.lastrowid)).fetchone()
-        if prev and prev["value"] and abs(x.value-prev["value"])/abs(prev["value"])*100 >= (m["sudden_change_pct"] if m else 20):
-            db.execute("INSERT INTO alerts(user_id,metric,metric_id,alert_type,message,severity) VALUES(?,?,?,?,?,?)",(u["id"],x.metric,cur.lastrowid,"change","Chỉ số thay đổi đột ngột so với lần đo trước; hãy đo lại và theo dõi.","warning"))
-    return {"id":cur.lastrowid,"message":"Đã lưu."}
+        metric_id=store_measurement(db,u["id"],x.metric,x.value,x.secondary_value,x.unit,x.measured_at,x.note)
+    return {"id":metric_id,"message":"Đã lưu."}
 
 @app.delete("/api/metrics/{mid}")
 def delete_metric(mid:int,u=Depends(only_user)):
