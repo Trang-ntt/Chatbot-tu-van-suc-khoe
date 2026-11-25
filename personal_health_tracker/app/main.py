@@ -204,6 +204,9 @@ def trends(metric:str,period:str="month",u=Depends(only_user)):
         if cutoff: sql+=" AND measured_at>=datetime('now',?)";args.append(cutoff)
         rows=[dict(r) for r in db.execute(sql+" ORDER BY measured_at",args).fetchall()]
     result=analyze_series([r["value"] for r in rows])
+    with connect() as db:
+        goal=db.execute("SELECT target_value,unit FROM metric_goals WHERE user_id=? AND metric=?",(u["id"],metric)).fetchone()
+    result["goal"] = dict(goal) if goal else None
     if metric=="blood_pressure": result["diastolic"]=analyze_series([r["secondary_value"] for r in rows if r["secondary_value"] is not None])
     return {"metric":metric,"records":rows,"analysis":result}
 
