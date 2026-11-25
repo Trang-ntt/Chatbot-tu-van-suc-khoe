@@ -241,5 +241,7 @@ def export_xlsx(u=Depends(only_user)):
 
 @app.get("/")
 def home():
+    from pathlib import Path
     from fastapi.responses import HTMLResponse
-    return HTMLResponse("<h1>Personal Health Tracker API</h1><p>Open <a href='/docs'>/docs</a> to use the application API.</p>")
+    page = Path(__file__).parent / "static" / "index.html"
+    return HTMLResponse(page.read_text(encoding="utf-8"))
