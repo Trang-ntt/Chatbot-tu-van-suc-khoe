@@ -60,6 +60,7 @@ body{font-family:Arial;margin:0;background:#f2f6f8;color:#18312c}header{backgrou
 <label>Lặp lại</label><select id="medRepeat"><option value="daily">Hằng ngày</option><option value="weekly">Hằng tuần (thứ Hai)</option><option value="once">Một lần</option></select>
 <label>Ghi chú</label><input id="medNotes">
 <button onclick="saveMedication()">Lưu lịch nhắc thuốc</button><div id="medicationList"></div>
+<button onclick="enableMedicationNotifications()">Bật thông báo trên trình duyệt</button>
 <p class="muted">Thông báo trình duyệt chỉ hoạt động khi trang đang mở và bạn đã cấp quyền thông báo.</p>
 </div>
 </section>
@@ -96,7 +97,11 @@ $('metric').onchange=()=>{$('unit').value=({blood_pressure:'mmHg',weight:'kg',gl
 </script>
 <script>
 let guestSession=null, personalSession=null;
-function goPage(id){const el=$(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});document.querySelectorAll('#mainNav button').forEach(b=>b.classList.toggle('active',b.dataset.target===id))}
+function goPage(id){
+ document.querySelectorAll('#workspace .card').forEach(c=>{c.style.display=(id==='workspace'||c.id===id)?'':'none'});
+ const el=$(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+ document.querySelectorAll('#mainNav button').forEach(b=>b.classList.toggle('active',b.dataset.target===id));
+}
 function initIntegratedNav(){
  const nav=$('mainNav'); if(!nav)return;
  const items=[['Tổng quan','workspace'],['Hồ sơ','profile'],['Nhập chỉ số','metrics'],['Xu hướng','trends'],['Chatbot cá nhân','personalAssistant'],['Triệu chứng','guestSymptoms'],['Đặt lịch khám','appointments'],['Thuốc','medications'],['Cảnh báo','alerts'],['Báo cáo','history'],['Chia sẻ','shares']];
@@ -128,8 +133,10 @@ async function sendAppointment(){try{const preferred=new Date($('appointmentTime
 async function loadAppointments(){try{const a=await api('/appointments');$('appointmentList').innerHTML=a.map(x=>'<p>'+esc(x.specialty)+' · '+esc(x.preferred_at)+' · '+esc(x.status)+(x.status==='pending'?' <button onclick="cancelAppointment('+x.id+')">Hủy</button>':'')+'</p>').join('')||'Chưa có yêu cầu khám.'}catch(e){}}
 async function cancelAppointment(id){try{await api('/appointments/'+id,{method:'DELETE'});await loadAppointments()}catch(e){alert(e.message)}}
 async function saveMedication(){try{const times=$('medTimes').value.split(',').map(x=>x.trim()).filter(Boolean);const d=await api('/medications',{method:'POST',body:JSON.stringify({name:$('medName').value,instructions:$('medInstructions').value,schedule_times:times,start_date:$('medStart').value,end_date:$('medEnd').value,repeat_rule:$('medRepeat').value,notes:$('medNotes').value})});alert(d.message);await loadMedications()}catch(e){alert(e.message)}}
-async function loadMedications(){try{const a=await api('/medications');$('medicationList').innerHTML=a.map(x=>'<p>'+esc(x.name)+' · '+esc(JSON.parse(x.schedule_times).join(', '))+' · '+esc(x.repeat_rule)+' <button onclick="disableMedication('+x.id+')">Tắt</button></p>').join('')||'Chưa có lịch thuốc.'}catch(e){}}
+async function loadMedications(){try{const a=await api('/medications');$('medicationList').innerHTML=a.map(x=>'<p>'+esc(x.name)+' · '+esc(JSON.parse(x.schedule_times).join(', '))+' · '+esc(x.repeat_rule)+' <button onclick="markMedicationTaken('+x.id+')">Đã uống</button> <button onclick="disableMedication('+x.id+')">Tắt</button></p>').join('')||'Chưa có lịch thuốc.'}catch(e){}}
 async function disableMedication(id){try{await api('/medications/'+id,{method:'DELETE'});await loadMedications()}catch(e){alert(e.message)}}
+async function markMedicationTaken(id){try{const d=await api('/medications/'+id+'/taken',{method:'POST'});alert(d.message)}catch(e){alert(e.message)}}
+async function enableMedicationNotifications(){if(!('Notification'in window)){alert('Trình duyệt không hỗ trợ thông báo.');return}const permission=await Notification.requestPermission();alert(permission==='granted'?'Đã bật thông báo khi trang đang mở.':'Bạn chưa cấp quyền thông báo.');checkMedicationNotifications()}
 async function checkMedicationNotifications(){
  if(role!=='user'||!('Notification'in window)||Notification.permission!=='granted')return;
  try{const due=await api('/medications/due');for(const m of due){const key='med-notice-'+m.id+'-'+new Date().toISOString().slice(0,10)+'-'+m.time;if(sessionStorage.getItem(key))continue;new Notification('Nhắc lịch thuốc: '+m.name,{body:'Đến giờ nhắc theo lịch bạn đã nhập. Làm theo đơn/chỉ dẫn y tế.'});sessionStorage.setItem(key,'1')}}catch(e){}
