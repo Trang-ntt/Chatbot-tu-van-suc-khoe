@@ -490,14 +490,6 @@ def init_db():
         cur.execute(
             """
             CREATE INDEX IF NOT EXISTS
-            idx_chat_user
-            ON ChatHistory(UserID)
-            """
-        )
-
-        cur.execute(
-            """
-            CREATE INDEX IF NOT EXISTS
             idx_med_user
             ON Medications(UserId)
             """
