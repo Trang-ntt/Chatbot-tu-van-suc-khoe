@@ -50,7 +50,8 @@ Chỉ dùng các tài khoản và dữ liệu này để trình diễn. Đổi m
 | Hồ sơ | `GET/PUT /api/profile` |
 | Chỉ số | `GET/POST /api/metrics`, `DELETE /api/metrics/{id}`, `POST /api/metrics/import-csv` |
 | Ngưỡng/cảnh báo | `GET/POST /api/thresholds`, `GET /api/alerts` |
-| AI xu hướng | `GET /api/analytics/trends?metric=weight&period=week` |
+| Mục tiêu | `GET/POST /api/goals` |
+| AI xu hướng | `GET /api/analytics/trends?metric=weight&period=week` (day/week/month/all) |
 | Nhắc nhở | `GET/POST /api/reminders`, `DELETE /api/reminders/{id}` |
 | Chia sẻ | `GET/POST /api/shares`, `DELETE /api/shares/{id}`, `GET /api/shared/{owner_id}/metrics` |
 | Báo cáo | `GET /api/reports/export.xlsx`, `GET /api/reports/export.pdf` |
