@@ -32,7 +32,9 @@ jobs:
           cache-dependency-path: personal_health_tracker/requirements.txt
       - run: pip install -r requirements.txt
       - run: python -m compileall -q app
-      - run: pytest -q
+      - run: python -m pytest -q
+      - name: Verify root ASGI entry point
+        run: python -c "import sys; sys.path.insert(0, '..'); from main import app; print(app.title)"
   deploy:
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
