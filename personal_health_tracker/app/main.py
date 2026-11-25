@@ -13,7 +13,9 @@ from .db import connect, init_db
 from .analytics import analyze_series
 
 load_dotenv()
-SECRET=os.getenv("JWT_SECRET","development-secret-change-this-to-32chars")
+SECRET=os.getenv("JWT_SECRET","local-development-secret-not-for-deployment")
+TOKEN_EXPIRE_MINUTES=max(5,int(os.getenv("TOKEN_EXPIRE_MINUTES","720")))
+if len(SECRET)<32: raise RuntimeError("JWT_SECRET must contain at least 32 characters.")
 security=HTTPBearer()
 app=FastAPI(title="Personal Health Tracker",description="Dữ liệu giả lập; không chẩn đoán.")
 METRICS={"blood_pressure","weight","glucose","heart_rate","sleep"}
@@ -92,7 +94,7 @@ def register(x:Credentials):
 def login(x:Credentials):
     with connect() as db: u=db.execute("SELECT * FROM users WHERE username=? AND active=1",(x.username,)).fetchone()
     if not u or not bcrypt.checkpw(x.password.encode(),u["password_hash"].encode()): raise HTTPException(401,"Sai tài khoản hoặc mật khẩu.")
-    token=jwt.encode({"sub":str(u["id"]),"exp":datetime.now(timezone.utc)+timedelta(hours=12)},SECRET,algorithm="HS256")
+    token=jwt.encode({"sub":str(u["id"]),"exp":datetime.now(timezone.utc)+timedelta(minutes=TOKEN_EXPIRE_MINUTES)},SECRET,algorithm="HS256")
     return {"access_token":token,"token_type":"bearer","role":u["role"],"username":u["username"]}
 
 @app.get("/api/me")
