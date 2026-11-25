@@ -20,7 +20,7 @@ def seed():
                 t=(now-timedelta(days=13-i)).isoformat()
                 db.execute("INSERT INTO metrics(user_id,metric,value,unit,measured_at,note) VALUES(?,?,?,?,?,?)",(uid,"weight",60+i*.08,"kg",t,"Dữ liệu giả lập"))
                 db.execute("INSERT INTO metrics(user_id,metric,value,unit,measured_at,note) VALUES(?,?,?,?,?,?)",(uid,"sleep",7.2-(i%4)*.15,"hour",t,"Dữ liệu giả lập"))
-        db.execute("INSERT OR IGNORE INTO shares(owner_id,viewer_id,scope) VALUES(?,?,?)",(uid,ids["viewer_demo"],"metrics"))
+        # No sharing is pre-authorized; user_demo must explicitly grant consent in the UI.
     print("Demo accounts seeded. Use only synthetic data.")
     print("admin_demo / AdminDemo!2026 | user_demo / UserDemo!2026 | viewer_demo / ViewerDemo!2026")
 
