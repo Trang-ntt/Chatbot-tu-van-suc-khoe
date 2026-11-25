@@ -94,3 +94,31 @@ def test_csv_import_uses_validation_and_reports_skipped_rows(tmp_path, monkeypat
         })
         assert response.status_code == 200, response.text
         assert response.json() == {"inserted": 1, "skipped": 1}
+
+def test_home_health_and_both_report_formats(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", str(tmp_path / "reports.db"))
+    db.init_db()
+    with db.connect() as conn:
+        make_user(conn, "reportuser")
+        user_id = conn.execute("SELECT id FROM users WHERE username='reportuser'").fetchone()["id"]
+        conn.execute(
+            "INSERT INTO metrics(user_id,metric,value,unit,measured_at,note) VALUES(?,?,?,?,?,?)",
+            (user_id, "weight", 61.5, "kg", "2026-11-20T08:00:00+00:00", "synthetic")
+        )
+    with TestClient(app) as client:
+        assert "HealthTrack" in client.get("/").text
+        assert client.get("/api/health").json()["status"] == "ok"
+        headers = login(client, "reportuser")
+        xlsx = client.get("/api/reports/export.xlsx", headers=headers)
+        pdf = client.get("/api/reports/export.pdf", headers=headers)
+        assert xlsx.status_code == 200 and xlsx.content.startswith(b"PK")
+        assert pdf.status_code == 200 and pdf.content.startswith(b"%PDF")
+
+def test_registration_creates_user_role(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", str(tmp_path / "register.db"))
+    db.init_db()
+    with TestClient(app) as client:
+        response = client.post("/api/auth/register", json={"username":"newperson","password":"Password123!"})
+        assert response.status_code == 200
+        headers = login(client, "newperson", "Password123!")
+        assert client.get("/api/me", headers=headers).json()["role"] == "user"
