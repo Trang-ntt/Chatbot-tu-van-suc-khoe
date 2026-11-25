@@ -257,8 +257,17 @@ def shared_metrics(owner_id:int,u=Depends(current_user)):
 @app.get("/api/reports/export.xlsx")
 def export_xlsx(u=Depends(only_user)):
     with connect() as db: rows=db.execute("SELECT metric,value,secondary_value,unit,measured_at,note FROM metrics WHERE user_id=? ORDER BY measured_at",(u["id"],)).fetchall()
-    w=Workbook();s=w.active;s.append(["Chỉ số","Giá trị","Giá trị phụ","Đơn vị","Thời điểm","Ghi chú"])
+    w=Workbook();s=w.active;s.title="Health metrics";s.append(["Metric","Value","Secondary value","Unit","Measured at","Note"])
     for r in rows:s.append(list(r))
+    ai=w.create_sheet("AI methods and sources")
+    ai.append(["Item","Disclosure"])
+    ai.append(["Trend analysis","Moving average (up to 3 samples), ordinary least squares linear regression, Z-score outlier flag (at least 5 samples)."])
+    ai.append(["Limitations","Statistical trend summary only; not a diagnosis, prediction of disease, or treatment recommendation."])
+    ai.append(["AI-assisted content","Code scaffolding and test suggestions were AI-assisted; see docs/AI_USAGE.md for disclosure and team evidence log."])
+    ai.append(["Threshold source - WHO hypertension","https://www.who.int/news-room/fact-sheets/detail/hypertension"])
+    ai.append(["Threshold source - WHO diabetes","https://www.who.int/news-room/fact-sheets/detail/diabetes"])
+    ai.append(["Physical activity - WHO","https://www.who.int/news-room/fact-sheets/detail/physical-activity"])
+    ai.append(["Sleep - CDC","https://www.cdc.gov/sleep/about/index.html"])
     b=io.BytesIO();w.save(b);b.seek(0)
     return StreamingResponse(b,media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",headers={"Content-Disposition":"attachment; filename=health_report.xlsx"})
 
