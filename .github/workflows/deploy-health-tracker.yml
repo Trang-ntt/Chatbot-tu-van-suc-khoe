@@ -54,15 +54,15 @@ jobs:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
           DEPLOYED_APP_URL: ${{ vars.DEPLOYED_APP_URL }}
         run: |
+          echo "## Website" >> "$GITHUB_STEP_SUMMARY"
           if [ -n "$RENDER_DEPLOY_HOOK_URL" ]; then
             curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK_URL"
-            echo "## Website deployment" >> "$GITHUB_STEP_SUMMARY"
-            if [ -n "$DEPLOYED_APP_URL" ]; then
-              echo "Website: $DEPLOYED_APP_URL" >> "$GITHUB_STEP_SUMMARY"
-            else
-              echo "Render deploy requested. Add repository variable DEPLOYED_APP_URL to show the live link here." >> "$GITHUB_STEP_SUMMARY"
-            fi
+            echo "Render deployment was triggered." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "## Website deployment not configured" >> "$GITHUB_STEP_SUMMARY"
-            echo "Tests passed. Add secret RENDER_DEPLOY_HOOK_URL and variable DEPLOYED_APP_URL after creating the Render service. Then this Actions run will trigger deployment and show the website link." >> "$GITHUB_STEP_SUMMARY"
+            echo "No deploy hook is configured; if Render Auto-Deploy is enabled, it will deploy from the main branch automatically." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -n "$DEPLOYED_APP_URL" ]; then
+            echo "Open application: $DEPLOYED_APP_URL" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "After creating the Render service, add repository variable DEPLOYED_APP_URL to show the clickable website link in this Actions Summary." >> "$GITHUB_STEP_SUMMARY"
           fi
